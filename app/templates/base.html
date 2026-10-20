@@ -3,29 +3,93 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}工作台{% endblock %} · 工作台</title>
+{# 子模板的 title 块只渲染一次，先捕获成变量，顶栏「当前页标题」复用同一段文本。 #}
+{% set page_heading %}{% block title %}工作台{% endblock %}{% endset %}
+<title>{{ page_heading|trim }} · 工作台</title>
 <link rel="stylesheet" href="/static/app.css">
 <link rel="stylesheet" href="/static/auth.css">
 <script src="/static/htmx.min.js" defer></script>
 <script src="/static/app.js" defer></script>
+<script src="/static/nav.js" defer></script>
 {% block head_extra %}{% endblock %}
 </head>
-<body>
 {% set path = request.url.path if request else '' %}
 {% set me = request.state.user if request else None %}
 {% set mode = request.state.auth_mode if request else '' %}
-<header class="topbar">
+{% set stats = sidebar_stats(request) if request else {'overdue': 0, 'today': 0, 'routine_open': 0, 'user': None} %}
+{# 多用户模式必须有登录用户才进带侧边栏的外壳；单口令/开放模式用户为空，但请求已过鉴权。
+   登录页/注册页/setup 页不继承本模板，因此未登录时页面仍是居中的简洁布局。 #}
+{% set show_sidebar = stats.user is not none or mode != 'multi' %}
+{% set heading = (page_title if page_title is defined and page_title else page_heading)|trim %}
+<body class="{{ 'has-sidebar' if show_sidebar else '' }}">
+{% if show_sidebar %}
+<div class="sidebar-scrim" data-sidebar-close aria-hidden="true"></div>
+<aside class="sidebar" id="app-sidebar" aria-label="侧边栏">
+  <div class="sidebar-brand"><a class="brand" href="/">工作台</a></div>
+  <div class="sidebar-quick">
+    <a class="btn btn-primary btn-block" href="/tasks/new">+ 新建工作</a>
+    <div class="sidebar-stats" aria-label="快捷统计">
+      <div class="sidebar-stat{{ ' is-danger' if stats.overdue > 0 else '' }}">
+        <span>逾期</span>
+        <span class="sidebar-stat-value">{{ stats.overdue }}</span>
+      </div>
+      <div class="sidebar-stat{{ ' is-warn' if stats.today > 0 else '' }}">
+        <span>今日</span>
+        <span class="sidebar-stat-value">{{ stats.today }}</span>
+      </div>
+      <div class="sidebar-stat">
+        <span>例行未完成</span>
+        <span class="sidebar-stat-value">{{ stats.routine_open }}</span>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav" aria-label="主导航">
+    <a href="/" class="{{ 'active' if path == '/' else '' }}">仪表盘</a>
+    <a href="/routines" class="{{ 'active' if path.startswith('/routines') else '' }}">例行工作</a>
+    <a href="/week" class="{{ 'active' if path.startswith('/week') else '' }}">周视图</a>
+    <a href="/projects" class="{{ 'active' if path.startswith('/projects') else '' }}">项目</a>
+    <a href="/archive" class="{{ 'active' if path.startswith('/archive') else '' }}">归档</a>
+    <a href="/reports" class="{{ 'active' if path.startswith('/reports') else '' }}">报告</a>
+    <a href="/settings" class="{{ 'active' if path.startswith('/settings') else '' }}">设置</a>
+    {% if stats.user and stats.user.role == 'admin' %}
+    <a href="/admin/users" class="{{ 'active' if path.startswith('/admin') else '' }}">用户管理</a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-foot">
+    {% if stats.user %}
+    <div class="sidebar-user" title="{{ stats.user.username }}">
+      <span class="sidebar-username">{{ stats.user.display_name or stats.user.username }}</span>
+      {% if stats.user.role == 'admin' %}
+      <span class="badge badge-admin">管理员</span>
+      {% else %}
+      <span class="badge badge-user">成员</span>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if stats.user or auth_enabled %}
+    <form method="post" action="/logout" class="inline-form">
+      <button type="submit" class="btn btn-ghost btn-sm btn-block">退出</button>
+    </form>
+    {% elif mode == 'open' %}
+    <a class="btn btn-ghost btn-sm btn-block" href="/setup">初始化管理员</a>
+    {% endif %}
+  </div>
+</aside>
+{% endif %}
+<div class="app-main">
+<header class="topbar no-print">
   <div class="topbar-inner">
-    <a class="brand" href="/">工作台</a>
-    <nav class="nav" aria-label="主导航">
-      <a href="/" class="{{ 'active' if path == '/' else '' }}">仪表盘</a>
-      <a href="/week" class="{{ 'active' if path.startswith('/week') else '' }}">周视图</a>
-      <a href="/routines" class="{{ 'active' if path.startswith('/routines') else '' }}">例行工作</a>
-      <a href="/projects" class="{{ 'active' if path.startswith('/projects') else '' }}">项目</a>
-      <a href="/archive" class="{{ 'active' if path.startswith('/archive') else '' }}">归档</a>
-      <a href="/reports" class="{{ 'active' if path.startswith('/reports') else '' }}">报告</a>
-      <a href="/settings" class="{{ 'active' if path.startswith('/settings') else '' }}">设置</a>
-    </nav>
+    {% if show_sidebar %}
+    <button type="button" class="nav-toggle" id="sidebar-toggle" aria-controls="app-sidebar"
+            aria-expanded="false" aria-label="打开导航">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M2 4h12M2 8h12M2 12h12" fill="none" stroke="currentColor"
+              stroke-width="1.6" stroke-linecap="round"></path>
+      </svg>
+    </button>
+    {% endif %}
+    <a class="brand topbar-brand" href="/">工作台</a>
+    <div class="topbar-title" title="{{ heading }}">{{ heading }}</div>
     <div class="topbar-right">
       {% block topbar_actions %}{% endblock %}
       {% include "partials/auth_user_menu.html" %}
@@ -57,5 +121,6 @@
     <span class="status-item muted">工作台 v0.1.0</span>
   </div>
 </footer>
+</div>
 </body>
 </html>

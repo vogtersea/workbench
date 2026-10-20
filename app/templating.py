@@ -70,11 +70,64 @@ def settings_get(key: str, default: str = "") -> str:
         return default
 
 
+SIDEBAR_ZERO: dict[str, int] = {"overdue": 0, "today": 0, "routine_open": 0}
+
+
+def _count(sql: str, params: tuple = ()) -> int:
+    from app import db
+
+    row = db.one(sql, params)
+    return int(row["n"]) if row is not None else 0
+
+
+def sidebar_stats(request) -> dict[str, Any]:
+    """侧边栏快捷统计：逾期 / 今日 / 例行未完成 + 当前用户（布局改造）。
+
+    归属走 auth.effective_owner_id（None = 开放/单口令模式，不过滤；管理员 ?as= 生效）。
+    任何异常都退化为 0，绝不让布局因为统计失败而 500。
+    """
+    stats: dict[str, Any] = {**SIDEBAR_ZERO, "user": None}
+    from app import auth
+
+    try:
+        stats["user"] = auth.current_user(request)
+        owner_id = auth.effective_owner_id(request, stats["user"])
+        today = timeutil.today().isoformat()
+
+        clause, extra = "", ()
+        if owner_id is not None:
+            clause, extra = " AND t.owner_id = ?", (int(owner_id),)
+
+        active = " FROM tasks t WHERE t.archived = 0 AND t.status IN ('todo', 'doing')"
+        stats["overdue"] = _count(
+            "SELECT COUNT(*) AS n"
+            + active
+            + " AND t.due_date IS NOT NULL AND t.due_date < ?"
+            + clause,
+            (today, *extra),
+        )
+        stats["today"] = _count(
+            "SELECT COUNT(*) AS n" + active + " AND t.due_date = ?" + clause,
+            (today, *extra),
+        )
+        stats["routine_open"] = _count(
+            "SELECT COUNT(*) AS n FROM tasks t JOIN routines r ON r.id = t.routine_id"
+            " WHERE t.archived = 0 AND t.status IN ('todo', 'doing') AND r.active = 1"
+            + clause,
+            extra,
+        )
+    except Exception:
+        logger.warning("侧边栏统计失败，退化为 0", exc_info=True)
+        stats.update(SIDEBAR_ZERO)
+    return stats
+
+
 templates.env.filters["md"] = md
 templates.env.filters["fmt_cn"] = fmt_cn
 templates.env.filters["status_label"] = status_label
 templates.env.filters["priority_label"] = priority_label
 templates.env.globals["settings_get"] = settings_get
+templates.env.globals["sidebar_stats"] = sidebar_stats
 templates.env.globals["STATUS_LABELS"] = STATUS_LABELS
 templates.env.globals["PRIORITY_LABELS"] = PRIORITY_LABELS
 

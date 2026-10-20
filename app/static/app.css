@@ -456,3 +456,104 @@ a.quiet { color: inherit; }
   .prose a { color: #000; text-decoration: none; }
   .prose pre { white-space: pre-wrap; }
 }
+/* ============================================================================
+   布局改造：左侧常驻侧边栏 + 窄屏抽屉（仅追加，不改动上面的既有规则）
+   ============================================================================ */
+
+.app-main { min-height: 100vh; display: flex; flex-direction: column; }
+.app-main > .container { flex: 1 0 auto; }
+.has-sidebar .app-main { margin-left: 220px; }
+
+/* ---------- 侧边栏 ---------- */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 30;
+  width: 220px; display: flex; flex-direction: column; gap: 14px;
+  padding: 12px 10px; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); border-right: 1px solid var(--border);
+}
+.sidebar-brand { padding: 2px 6px 0; }
+.sidebar-brand .brand { font-size: 15px; }
+.sidebar-quick { display: grid; gap: 8px; }
+.sidebar-stats { display: grid; gap: 4px; }
+.sidebar-stat {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px 9px; font-size: 12.5px; color: var(--text-muted);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.sidebar-stat-value {
+  font-size: 13px; font-weight: 650; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-stat.is-danger { background: var(--danger-soft); border-color: #f6d6d4; color: #8f1f1f; }
+.sidebar-stat.is-danger .sidebar-stat-value { color: var(--danger); }
+.sidebar-stat.is-warn { background: var(--warn-soft); border-color: #f0dcb4; color: #6f4407; }
+.sidebar-stat.is-warn .sidebar-stat-value { color: var(--warn); }
+
+.sidebar-nav { display: grid; gap: 2px; align-content: start; flex: 1 1 auto; }
+.sidebar-nav a {
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  font-size: 13.5px; font-weight: 500; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-nav a:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
+.sidebar-nav a.active { background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+
+.sidebar-foot {
+  margin-top: auto; padding-top: 10px; display: grid; gap: 6px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0 6px;
+  font-size: 12.5px; color: var(--text);
+}
+.sidebar-username { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- 顶栏：汉堡 + 当前页标题 ---------- */
+.nav-toggle {
+  display: none; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; margin-left: -6px;
+  color: var(--text-muted); background: transparent;
+  border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
+}
+.nav-toggle:hover { background: var(--surface-2); color: var(--text); }
+.topbar-title {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 15px; font-weight: 650; letter-spacing: -.01em; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.has-sidebar .topbar-brand { display: none; }
+.has-sidebar .topbar-inner { gap: 12px; }
+
+/* ---------- 遮罩（仅窄屏抽屉态可见） ---------- */
+.sidebar-scrim { display: none; }
+
+@media (max-width: 900px) {
+  .has-sidebar .app-main { margin-left: 0; }
+  .has-sidebar .topbar-brand { display: inline; }
+  .nav-toggle { display: inline-flex; }
+  .sidebar {
+    width: 260px; z-index: 60;
+    transform: translateX(-100%); transition: transform .18s ease;
+    box-shadow: var(--shadow);
+  }
+  body.drawer-open .sidebar { transform: translateX(0); }
+  body.drawer-open { overflow: hidden; }
+  .sidebar-scrim {
+    display: block; position: fixed; inset: 0; z-index: 50;
+    background: rgba(16, 24, 40, .42);
+    opacity: 0; visibility: hidden; transition: opacity .18s ease, visibility .18s ease;
+  }
+  body.drawer-open .sidebar-scrim { opacity: 1; visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-scrim { transition: none; }
+}
+
+/* ---------- 打印：侧边栏与顶栏整体隐藏（沿用 .no-print 语义） ---------- */
+@media print {
+  .sidebar, .sidebar-scrim, .nav-toggle { display: none !important; }
+  .has-sidebar .app-main { margin-left: 0; }
+  .topbar-brand { display: none !important; }
+}
