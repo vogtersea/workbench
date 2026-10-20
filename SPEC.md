@@ -727,3 +727,29 @@ app/api/routes_obsidian.py、app/web/pages_auth.py、app/web/pages_reports.py、
 7. 跳过本期 → 状态 cancelled、不计逾期、不再提醒。
 8. 多用户：alice 的例行对 bob 不可见；管理员 ?as=alice 可生成/查看。
 9. 停用模板后不再生成新实例，已有实例保留。
+
+## 17. 运行约束与容量假设（P1 起生效）
+
+### 17.1 worker 数与定时推送
+
+APScheduler 的 BackgroundScheduler 在每个进程内各跑一份，因此定时推送天然按进程复制。
+从 P1 起用 SQLite 的 settings.reminder_lock 做**抢占式日锁**：扫描任务开始前先尝试把
+reminder_lock 的值推进到今天，单条 UPDATE 原子，只有抢到的进程继续执行。
+
+- 默认部署仍是 **单 worker**（Dockerfile CMD 未加 --workers），这是最省心的形态；
+- 若要加 --workers N（N>1），**必须**确认日锁已生效（P1 之后默认生效），否则会重复推送；
+- 抢锁失败是正常路径，不记错误日志，只记一条 info。
+
+### 17.2 数据库连接
+
+P1 起改为**线程本地连接复用**：同一线程复用一条连接，不再每次查询 open/close。
+WAL 模式 + busy_timeout=5000 提供并发保障。
+
+- 只读查询不进显式事务；写操作通过 cursor() 上下文提交/回滚；
+- 线程退出时连接会残留，需由 close_threadlocal() 释放（测试 teardown 与进程退出路径调用）；
+- 单进程最坏连接数约等于 anyio 线程池大小（默认 40），SQLite 单写多读可承受。
+
+### 17.3 登录节流
+
+失败次数落库到 login_attempts（username + source + at，5 次 / 5 分钟窗口），
+重启不清零、多 worker 一致；每次记录顺带清理过期行，随机用户名不会撑大内存。
