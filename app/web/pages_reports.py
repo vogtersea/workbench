@@ -20,7 +20,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import auth, db, templating
 from app.config import settings
-from app.services import export, llm, reports, tasks
+from app.services import export, llm, tasks
+from app.services import report as reports
 from app.web.pages_tasks import as_query, owner_switch_context
 
 logger = logging.getLogger(__name__)

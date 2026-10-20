@@ -26,7 +26,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from app import auth
-from app.services import llm, reports
+from app.services import llm
+from app.services import report as reports
 
 logger = logging.getLogger(__name__)
 
