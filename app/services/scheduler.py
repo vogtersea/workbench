@@ -1,7 +1,11 @@
-"""APScheduler 每日提醒扫描（SPEC.md 第 5 / 7 节第 4 条）。
+"""APScheduler 每日提醒扫描（SPEC.md 第 5 / 7 节第 4 条、第 17.1 节）。
 
 main.py 在 lifespan 里调用 start() / shutdown()（签名固定，不得更改）。
 设置页改 remind_time 后调用 reschedule() 热更新，无需重启进程。
+
+单 worker 是默认形态（Dockerfile 未加 --workers）；BackgroundScheduler 在每个进程内
+各跑一份，所以多 worker 时依赖 acquire_daily_lock() 这把 SQLite 日锁去重：抢先推进
+settings.reminder_lock 到今天的那一路才继续扫描，其余进程只记一条 info 后返回（W-06）。
 """
 
 from __future__ import annotations
@@ -13,7 +17,7 @@ from typing import Any
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app import timeutil
+from app import db, timeutil
 from app.config import settings
 from app.services import settings_store
 
@@ -24,6 +28,19 @@ DEFAULT_TIME = "09:00"
 _TIME_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
 
 _scheduler: BackgroundScheduler | None = None
+
+
+def acquire_daily_lock(today_iso: str) -> bool:
+    """抢占当日锁（SPEC 17.1 / W-06）：只有 value 落后于今天的进程能抢到。
+
+    SQLite 单条 UPDATE 天然原子，因此多 worker 并发调用只会有一次影响行数 == 1。
+    默认值由 db.init_db() 播种为空串（"" < 今天），首次运行必然抢到。
+    """
+    affected = db.execute(
+        "UPDATE settings SET value = ? WHERE key = 'reminder_lock' AND value < ?",
+        (today_iso, today_iso),
+    )
+    return affected == 1
 
 
 def parse_hhmm(raw: str | None) -> tuple[int, int]:
@@ -85,7 +102,22 @@ def _ensure_routines() -> None:
 
 
 def _run_daily() -> None:
-    """定时任务主体：任何异常都吞掉并记日志，避免调度器线程崩掉。"""
+    """定时任务主体：先抢当日锁，抢不到直接返回；异常都吞掉并记日志。
+
+    这是调度器唯一的入口（start() / reschedule() 都注册本函数），日锁因此覆盖所有
+    触发路径：抢不到锁说明别的 worker 今天已经扫过，直接 return，不当错误也不重试。
+    """
+    today_iso = timeutil.today().isoformat()
+    try:
+        acquired = acquire_daily_lock(today_iso)
+    except Exception:
+        logger.exception("抢当日锁失败（%s），本次跳过以免重复推送", today_iso)
+        return
+    if not acquired:
+        logger.info("当日锁已被其它 worker 持有（%s），本次跳过", today_iso)
+        return
+    logger.info("当日锁已获取（%s），开始每日扫描", today_iso)
+
     from app.services import reminders
 
     _ensure_routines()
@@ -124,7 +156,10 @@ def start() -> None:
     )
     scheduler.start()
     _scheduler = scheduler
-    logger.info("调度器已启动：每天 %02d:%02d（%s）", hour, minute, settings.tz_name)
+    logger.info(
+        "调度器已启动：每天 %02d:%02d（%s）；多 worker 由 reminder_lock 日锁去重",
+        hour, minute, settings.tz_name,
+    )
 
 
 def shutdown() -> None:
