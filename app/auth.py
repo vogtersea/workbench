@@ -5,7 +5,7 @@
   - create_session / lookup_session / destroy_session
   - current_user(request)              当前登录用户（dict 或 None）
   - is_admin / effective_owner_id      角色判断与 ?as= 解析（供任务域/报告域调用）
-  - login_blocked / record_failure / clear_failures / retry_after   进程内节流
+  - login_blocked / record_failure / clear_failures / retry_after   登录节流（落库，SPEC 17.3）
 
 单用户兼容：users 表为空时不产生任何会话，current_user() 返回 None，
 security 模块退化为改造前的 APP_PASSWORD 口令门禁。
@@ -17,9 +17,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-import threading
-import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from app import db, security, timeutil
 
@@ -30,8 +28,11 @@ PBKDF2_ITERATIONS = 200_000
 SALT_BYTES = 16
 SEPARATOR = "$"
 SESSION_TTL_SECONDS = 30 * 24 * 3600
-MAX_LOGIN_FAILURES = 5
-LOGIN_WINDOW_SECONDS = 300
+MAX_FAILURES = 5
+WINDOW_SECONDS = 300
+# 旧名兼容位：app/web/pages_auth.py:174 仍在读 MAX_LOGIN_FAILURES（值等同 MAX_FAILURES），
+# 该文件不在 W-07 的授权范围，故只保留别名、不改调用方。
+MAX_LOGIN_FAILURES = MAX_FAILURES
 
 
 # ---------------------------------------------------------------- 密码
@@ -176,12 +177,20 @@ def request_context(request) -> dict:
 
 
 # ---------------------------------------------------------------- 登录节流
-_failures: dict[tuple[str, str], list[float]] = {}
-_failures_lock = threading.Lock()
+# 状态全部落在 login_attempts（SPEC 17.3）：重启不清零、多 worker 一致、内存零占用。
+def _cutoff() -> str:
+    """窗口起点：now - 300s，去微秒后 isoformat（与 now_iso() 同格式，可直接字符串比较）。"""
+    return (timeutil.now() - timedelta(seconds=WINDOW_SECONDS)).replace(
+        microsecond=0
+    ).isoformat()
 
 
-def _prune(bucket: list[float], now: float) -> list[float]:
-    return [stamp for stamp in bucket if now - stamp < LOGIN_WINDOW_SECONDS]
+def _parse_at(value) -> datetime | None:
+    """宽松解析入库时间戳；损坏行按「无记录」处理。"""
+    try:
+        return datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
 
 
 def _key(username: str, source: str) -> tuple[str, str]:
@@ -190,45 +199,61 @@ def _key(username: str, source: str) -> tuple[str, str]:
 
 def login_blocked(username: str, source: str) -> bool:
     """同一用户名+来源 5 分钟内失败达到 5 次 -> True（应返回 429）。"""
-    key = _key(username, source)
-    now = time.time()
-    with _failures_lock:
-        bucket = _prune(_failures.get(key, []), now)
-        if bucket:
-            _failures[key] = bucket
-        else:
-            _failures.pop(key, None)
-        return len(bucket) >= MAX_LOGIN_FAILURES
+    row = db.one(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE username = ? AND source = ? AND at > ?",
+        (_key(username, source)[0], source, _cutoff()),
+    )
+    return int(row["c"]) >= MAX_FAILURES
 
 
 def record_failure(username: str, source: str) -> int:
-    key = _key(username, source)
-    now = time.time()
-    with _failures_lock:
-        bucket = _prune(_failures.get(key, []), now)
-        bucket.append(now)
-        _failures[key] = bucket
-        return len(bucket)
+    """写入一条失败记录，返回本次记录后该 (username, source) 在 300 秒窗口内的失败次数。
+
+    插入、清理窗口外旧行、取计数在同一个事务里完成，并复用同一个 cutoff，
+    避免「插入了但计数还没算上」的不一致；调用方（web/pages_auth.py）用它判断当次是否已达上限。
+    """
+    key_username = _key(username, source)[0]
+    cutoff = _cutoff()
+    with db.cursor() as conn:
+        conn.execute(
+            "INSERT INTO login_attempts(username, source, at) VALUES(?,?,?)",
+            (key_username, source, timeutil.now_iso()),
+        )
+        conn.execute("DELETE FROM login_attempts WHERE at <= ?", (cutoff,))
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM login_attempts "
+            "WHERE username = ? AND source = ? AND at > ?",
+            (key_username, source, cutoff),
+        ).fetchone()
+    return int(row["c"])
 
 
 def clear_failures(username: str, source: str) -> None:
-    with _failures_lock:
-        _failures.pop(_key(username, source), None)
+    db.execute(
+        "DELETE FROM login_attempts WHERE username = ? AND source = ?",
+        (_key(username, source)[0], source),
+    )
 
 
 def retry_after(username: str, source: str) -> int:
     """距离窗口内最早一次失败过期还有多少秒（无失败为 0）。"""
-    key = _key(username, source)
-    now = time.time()
-    with _failures_lock:
-        bucket = _prune(_failures.get(key, []), now)
-        if not bucket:
-            return 0
-        oldest = min(bucket)
-    return max(1, int(LOGIN_WINDOW_SECONDS - (now - oldest)))
+    row = db.one(
+        "SELECT at FROM login_attempts "
+        "WHERE username = ? AND source = ? AND at > ? ORDER BY at LIMIT 1",
+        (_key(username, source)[0], source, _cutoff()),
+    )
+    if row is None:
+        return 0
+    oldest = _parse_at(row["at"])
+    if oldest is None:
+        return 0
+    if oldest.tzinfo is None:
+        oldest = oldest.replace(tzinfo=timeutil.tz())
+    remaining = WINDOW_SECONDS - (timeutil.now() - oldest).total_seconds()
+    return max(1, min(WINDOW_SECONDS, int(remaining)))
 
 
 def reset_throttle() -> None:
-    """测试用：清空全部节流计数。"""
-    with _failures_lock:
-        _failures.clear()
+    """测试用：清空全部节流计数（落库后等价于清空 login_attempts）。"""
+    db.execute("DELETE FROM login_attempts")
