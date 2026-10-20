@@ -42,6 +42,12 @@ def _float(name: str, default: float) -> float:
         return default
 
 
+def _flag(name: str, default: bool = False) -> bool:
+    """布尔开关：1/true/on/yes 视为真（大小写不敏感）。"""
+    value = _str(name, "1" if default else "0").strip().lower()
+    return value in {"1", "true", "on", "yes"}
+
+
 def _path(name: str, default: str, base: Path | None = None) -> Path:
     path = Path(_str(name, default)).expanduser()
     if base is not None and not path.is_absolute():
@@ -89,6 +95,10 @@ class Settings:
     remind_time: str
     webhook_url: str
     port: int
+    # HTTPS 反代下置 1：会话 Cookie 带 Secure，浏览器才不会明文回传（W-02）
+    secure_cookie: bool = False
+    # docx 导出总开关（W-01）；关闭后导出路由 404、页面不显示按钮
+    export_docx: bool = True
 
     @property
     def db_path(self) -> Path:
@@ -127,6 +137,8 @@ def load_settings() -> Settings:
         remind_time=_str("REMIND_TIME", "09:00"),
         webhook_url=_str("WEBHOOK_URL", ""),
         port=_int("PORT", 8080),
+        secure_cookie=_flag("SECURE_COOKIE", False),
+        export_docx=_flag("EXPORT_DOCX", True),
     )
 
 

@@ -104,6 +104,8 @@ def set_session_cookie(response, token: str | None = None) -> None:
         max_age=COOKIE_MAX_AGE,
         httponly=True,
         samesite="lax",
+        # HTTPS 反向代理部署时由 SECURE_COOKIE=1 打开；直连 HTTP 置 1 会登录后立即掉线（预期）
+        secure=settings.secure_cookie,
         path="/",
     )
 
