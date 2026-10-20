@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">{{ page_title }}</div>
+    <div class="page-sub">标题必填；填了截止时间就必须先有截止日期；所属周留空时按截止日期所在周的周一，再退化为本周</div>
+  </div>
+  <a class="btn btn-sm" href="{{ cancel_url }}">返回</a>
+</div>
+
+{% if errors %}
+<div class="alert alert-danger">
+  <div class="alert-title">提交未通过校验</div>
+  <ul class="error-list">
+    {% for message in errors %}<li>{{ message }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body">
+    <form class="form" method="post" action="{{ form_action }}">
+      {% include "partials/tasks_form_fields.html" %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">{{ submit_label }}</button>
+        <a class="btn btn-ghost" href="{{ cancel_url }}">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

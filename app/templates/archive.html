@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}归档{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">归档</div>
+    <div class="page-sub">已完成 / 已取消的一次性工作，按完成周倒序 · 共 {{ total }} 条（例行实例不进归档，历史在「例行工作」页看）</div>
+  </div>
+  <div class="row">
+    {% include "partials/tasks_owner_switch.html" %}
+    <a class="btn btn-sm" href="/">仪表盘</a>
+    <a class="btn btn-sm" href="/week">周视图</a>
+    <a class="btn btn-sm" href="/routines{{ as_q|default('', true) }}">例行历史</a>
+  </div>
+</div>
+
+{% if groups %}
+{% for group in groups %}
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">{{ group.label }}</h2>
+    <span class="bucket-count">{{ group.tasks|length }}</span>
+  </div>
+  <div class="task-list">
+    {% for t in group.tasks %}
+    <div class="task-row">
+      <div class="task-main">
+        <div class="task-title"><a href="/tasks/{{ t.id }}{{ as_q|default('', true) }}">{{ t.title }}</a></div>
+        <div class="task-meta">
+          <span class="badge badge-{{ t.status }}">{{ t.status|status_label }}</span>
+          <span class="badge badge-p{{ t.priority }}">优先级 {{ t.priority|priority_label }}</span>
+          {% if t.project_name %}<span class="tag">{{ t.project_name }}</span>{% endif %}
+          {% if t.due_date %}<span class="muted small nowrap">DDL {{ t.due_date }}</span>{% endif %}
+          {% if t.completed_at %}<span class="muted small nowrap">完成于 {{ t.completed_at[:16]|replace('T', ' ') }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="task-side">
+        <form method="post" action="/tasks/{{ t.id }}/status{{ as_q|default('', true) }}" class="inline-form">
+          <input type="hidden" name="status" value="todo">
+          <button class="btn btn-sm" type="submit">恢复为待办</button>
+        </form>
+        <form method="post" action="/tasks/{{ t.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
+              data-confirm="确认彻底删除这条工作？">
+          <button class="btn btn-sm btn-danger" type="submit">删除</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-title">归档区还是空的</div>
+    <div class="empty-hint">在工作详情页点“完成”，它会自动销号并出现在这里</div>
+    <div class="mt-sm"><a class="btn btn-sm" href="/">回仪表盘</a></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

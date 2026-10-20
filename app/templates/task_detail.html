@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">{{ task.title }}</div>
+    <div class="page-sub row">
+      <span class="badge badge-{{ task.status }}">{{ task.status|status_label }}</span>
+      <span class="badge badge-p{{ task.priority }}">优先级 {{ task.priority|priority_label }}</span>
+      <span class="{{ task.due_class }}">{{ task.due_label }}</span>
+      {% if task.archived %}<span class="badge badge-muted">已归档</span>{% endif %}
+    </div>
+  </div>
+  <div class="row">
+    <a class="btn btn-sm" href="/">仪表盘</a>
+    <a class="btn btn-sm" href="/week?offset=0">周视图</a>
+    <a class="btn btn-sm" href="/archive">归档</a>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if notice %}<div class="alert alert-success">{{ notice }}</div>{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">状态切换</h2>
+    {% include "partials/tasks_statusbar.html" %}
+  </div>
+  <div class="card-body">
+    <div class="muted small">点“完成”即写完成时间并销号归档（离开仪表盘与周视图），可在归档区一键恢复为待办。</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">基本信息</h2></div>
+    <div class="card-body">
+      <dl class="info-grid">
+        <div class="info-item">
+          <dt class="info-label">状态</dt>
+          <dd class="info-value"><span class="badge badge-{{ task.status }}">{{ task.status|status_label }}</span></dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">项目</dt>
+          <dd class="info-value">
+            {% if task.project_name %}<span class="tag">{{ task.project_name }}</span>{% else %}<span class="faint">未归类</span>{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">优先级</dt>
+          <dd class="info-value"><span class="badge badge-p{{ task.priority }}">{{ task.priority|priority_label }}</span></dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">DDL</dt>
+          <dd class="info-value">
+            {% if task.due_date %}
+            <span class="{{ task.due_class }}">{{ task.due_date }}{% if task.due_time %} {{ task.due_time }}{% endif %}</span>
+            <span class="muted small">（{{ task.due_label }}）</span>
+            {% else %}<span class="faint">未设置</span>{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">所属周</dt>
+          <dd class="info-value">
+            {% if task.week_start %}{{ task.week_start }} <span class="muted small">（{{ task.week_start|fmt_cn }} 起）</span>{% else %}<span class="faint">未设置</span>{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">标签</dt>
+          <dd class="info-value">
+            {% if task.tag_list %}{% for tag in task.tag_list %}<span class="tag">{{ tag }}</span>{% endfor %}{% else %}<span class="faint">无</span>{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">创建时间</dt>
+          <dd class="info-value mono">{{ task.created_at[:16]|replace('T', ' ') }}</dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">更新时间</dt>
+          <dd class="info-value mono">{{ task.updated_at[:16]|replace('T', ' ') }}</dd>
+        </div>
+        {% if task.completed_at %}
+        <div class="info-item">
+          <dt class="info-label">完成时间</dt>
+          <dd class="info-value mono">{{ task.completed_at[:16]|replace('T', ' ') }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+      {% if task.detail %}
+      <hr>
+      <div class="section-title mb-sm">详情</div>
+      <div class="prose">{{ task.detail|md }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">完成条件</h2></div>
+    <div class="card-body">
+      {% if task.done_criteria %}
+      <div class="prose">{{ task.done_criteria|md }}</div>
+      {% else %}
+      <div class="empty empty-compact">
+        <div class="empty-title">还没有完成条件</div>
+        <div class="empty-hint">在下方“编辑工作”里补充，达成后点“完成”即自动归档</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card" id="progress">
+  <div class="card-head">
+    <h2 class="card-title">进展时间线</h2>
+    <span class="bucket-count">{{ progress|length }}</span>
+  </div>
+  <div class="card-body">
+    {% include "partials/tasks_progress.html" %}
+  </div>
+</div>
+
+<details class="card">
+  <summary class="card-head details-summary">
+    <h2 class="card-title">编辑工作</h2>
+    <span class="page-sub">修改字段后保存；所属周留空按截止日期推导</span>
+  </summary>
+  <div class="card-body">
+    <form class="form" method="post" action="/tasks/{{ task.id }}/edit{{ as_q|default('', true) }}">
+      {% include "partials/tasks_form_fields.html" %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">保存修改</button>
+        <a class="btn btn-ghost" href="/tasks/{{ task.id }}{{ as_q|default('', true) }}">放弃修改</a>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">危险操作</h2></div>
+  <div class="card-body">
+    <form class="form" method="post" action="/tasks/{{ task.id }}/delete{{ as_q|default('', true) }}"
+          data-confirm="删除后不可恢复，确认删除这条工作？">
+      <div class="form-actions">
+        <button class="btn btn-danger" type="submit">删除这条工作</button>
+        <span class="help">会连同它的 {{ progress|length }} 条进展一起删除</span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}邀请码{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">邀请码</h2>
+    <div class="card-actions">
+      <a class="btn btn-ghost btn-sm" href="/admin/users">用户管理</a>
+    </div>
+  </div>
+  <div class="card-body">
+    {% include "partials/auth_flash.html" %}
+    <p class="muted small">把邀请码发给同事，对方打开 /register?code=邀请码 即可自助注册；次数用完即自动失效。</p>
+    <form method="post" action="/admin/invites" class="form auth-inline-form">
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="note">备注</label>
+          <input class="input" id="note" name="note" type="text" placeholder="给谁的邀请码">
+        </div>
+        <div class="field">
+          <label class="label" for="max_uses">可用次数</label>
+          <input class="input" id="max_uses" name="max_uses" type="number" min="1" max="999" value="1">
+        </div>
+        <div class="field">
+          <label class="label" for="expires_days">有效天数</label>
+          <input class="input" id="expires_days" name="expires_days" type="number" min="1" max="3650"
+                 placeholder="留空=永不过期">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">生成邀请码</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">全部邀请码（{{ invites|length }}）</h2></div>
+  <div class="card-body">
+    {% if invites %}
+    <div class="table-wrap">
+      <table class="table table-compact">
+        <thead>
+          <tr>
+            <th>ID</th><th>邀请码</th><th>备注</th><th>已用/上限</th>
+            <th>状态</th><th>过期时间</th><th>创建人</th><th>创建时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in invites %}
+          {% set state = states.get(i.id) or 'invalid' %}
+          <tr>
+            <td class="num">{{ i.id }}</td>
+            <td><code class="auth-code">{{ i.code }}</code></td>
+            <td>{{ i.note or '—' }}</td>
+            <td class="num">{{ i.used_count }} / {{ i.max_uses }}</td>
+            <td>
+              {% if state == 'ok' %}
+              <span class="badge badge-active">可用</span>
+              {% elif state == 'expired' %}
+              <span class="badge badge-inactive">已过期</span>
+              {% else %}
+              <span class="badge badge-muted">已用完</span>
+              {% endif %}
+            </td>
+            <td class="muted small">{{ i.expires_at or '永不过期' }}</td>
+            <td class="muted small">{{ i.creator_name or '—' }}</td>
+            <td class="muted small">{{ i.created_at }}</td>
+            <td>
+              {% if state == 'ok' %}
+              <form method="post" action="/admin/invites/{{ i.id }}/revoke" class="inline-form">
+                <button class="btn btn-sm btn-danger" type="submit">作废</button>
+              </form>
+              {% else %}
+              <span class="muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-title">还没有邀请码</div>
+      <div class="empty-hint">用上方表单生成第一个邀请码。</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

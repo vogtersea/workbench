@@ -1,0 +1,23 @@
+{# 顶栏右侧：当前用户 + 角色徽标 + 用户管理 + 退出（SPEC 15.9）。 #}
+{% if me %}
+<span class="topbar-user" title="{{ me.username }}">
+  <span class="topbar-username">{{ me.display_name or me.username }}</span>
+  {% if me.role == 'admin' %}
+  <span class="badge badge-admin">管理员</span>
+  {% else %}
+  <span class="badge badge-user">成员</span>
+  {% endif %}
+</span>
+{% if me.role == 'admin' %}
+<a class="btn btn-ghost btn-sm" href="/admin/users">用户管理</a>
+{% endif %}
+<form method="post" action="/logout" class="inline-form">
+  <button type="submit" class="btn btn-ghost btn-sm">退出</button>
+</form>
+{% elif auth_enabled %}
+<form method="post" action="/logout" class="inline-form">
+  <button type="submit" class="btn btn-ghost btn-sm">退出</button>
+</form>
+{% elif mode == 'open' %}
+<a class="btn btn-ghost btn-sm" href="/setup">初始化管理员</a>
+{% endif %}

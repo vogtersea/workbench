@@ -1,0 +1,94 @@
+{# 例行模板表单字段（新建与编辑共用）。上下文：values / projects / field_errors /
+   freq_choices / due_rule_choices / priority_options / due_day_max。 #}
+<div class="field">
+  <label class="label" for="r-title">标题 <span class="faint">必填</span></label>
+  <input class="input" id="r-title" name="title" value="{{ values.title }}" maxlength="200" required
+         placeholder="例如：每周五交周报">
+  {% if field_errors.get('title') %}<div class="error-text">{{ field_errors.get('title') }}</div>{% endif %}
+</div>
+
+<div class="form-row">
+  <div class="field">
+    <label class="label" for="r-freq">周期</label>
+    <select class="select" id="r-freq" name="freq">
+      {% for value, label in freq_choices %}
+      <option value="{{ value }}"{% if values.freq == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if field_errors.get('freq') %}<div class="error-text">{{ field_errors.get('freq') }}</div>{% endif %}
+  </div>
+  <div class="field">
+    <label class="label" for="r-due-rule">截止规则</label>
+    <select class="select" id="r-due-rule" name="due_rule" data-due-rule>
+      {% for value, label in due_rule_choices %}
+      <option value="{{ value }}"{% if values.due_rule == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if field_errors.get('due_rule') %}<div class="error-text">{{ field_errors.get('due_rule') }}</div>{% endif %}
+  </div>
+  <div class="field" data-due-day>
+    <label class="label" for="r-due-day">周期第几天</label>
+    <input class="input" id="r-due-day" name="due_day" type="number" min="1" max="{{ due_day_max }}"
+           value="{{ values.due_day }}">
+    {% if field_errors.get('due_day') %}<div class="error-text">{{ field_errors.get('due_day') }}</div>
+    {% else %}<div class="help">1–{{ due_day_max }}；超出该周期天数时夹到周期末</div>{% endif %}
+  </div>
+</div>
+
+<div class="form-row">
+  <div class="field">
+    <label class="label" for="r-due-time">截止时间</label>
+    <input class="input" id="r-due-time" name="due_time" type="time" value="{{ values.due_time }}">
+    {% if field_errors.get('due_time') %}<div class="error-text">{{ field_errors.get('due_time') }}</div>
+    {% else %}<div class="help">可选，例 18:00</div>{% endif %}
+  </div>
+  <div class="field">
+    <label class="label" for="r-priority">优先级</label>
+    <select class="select" id="r-priority" name="priority">
+      {% for value, label in priority_options %}
+      <option value="{{ value }}"{% if values.priority == value|string %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label class="label" for="r-project">项目</label>
+    <select class="select" id="r-project" name="project_id">
+      <option value="">（不归类）</option>
+      {% for project in projects %}
+      <option value="{{ project.id }}"{% if values.project_id == project.id|string %} selected{% endif %}>{{ project.name }}</option>
+      {% endfor %}
+    </select>
+    {% if field_errors.get('project_id') %}<div class="error-text">{{ field_errors.get('project_id') }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="field">
+  <label class="label" for="r-tags">标签</label>
+  <input class="input" id="r-tags" name="tags" value="{{ values.tags }}" placeholder="逗号分隔，例如：周报,汇报">
+</div>
+
+<div class="field">
+  <label class="label" for="r-detail">详情</label>
+  <textarea class="textarea" id="r-detail" name="detail" rows="3"
+            placeholder="背景、范围、参考链接……支持 Markdown">{{ values.detail }}</textarea>
+</div>
+
+<div class="field">
+  <label class="label" for="r-done-criteria">完成条件</label>
+  <textarea class="textarea" id="r-done-criteria" name="done_criteria" rows="2"
+            placeholder="满足什么条件算这一期做完？">{{ values.done_criteria }}</textarea>
+</div>
+
+{# 「周期第几天」只在截止规则=day_of_period 时显示；纯渐进增强，禁用脚本时字段仍可见可填。 #}
+<script>
+(function () {
+  document.querySelectorAll('select[data-due-rule]').forEach(function (select) {
+    var form = select.closest('form');
+    var field = form ? form.querySelector('[data-due-day]') : null;
+    if (!field) { return; }
+    var sync = function () { field.classList.toggle('hidden', select.value !== 'day_of_period'); };
+    select.addEventListener('change', sync);
+    sync();
+  });
+})();
+</script>

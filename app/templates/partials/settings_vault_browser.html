@@ -1,0 +1,84 @@
+{# 目录浏览片段：面包屑 + 返回上级 + 子目录列表（htmx 目标 #vault-browser） #}
+<div id="vault-browser">
+  {% if vault.browse_error %}
+  <div class="alert alert-danger">
+    <div class="alert-title">目录读取失败</div>
+    <div class="small">{{ vault.browse_error }}</div>
+  </div>
+  {% elif vault.browse %}
+  {% set browse = vault.browse %}
+  <div class="section-title mt">目录浏览</div>
+  <div class="crumb-bar">
+    {% for crumb in browse.crumbs %}
+      {% if not loop.first %}<span class="crumb-sep">/</span>{% endif %}
+      <a class="crumb-link" href="/settings?browse={{ crumb.rel }}"
+         hx-get="/settings/browse?path={{ crumb.rel }}"
+         hx-target="#vault-browser" hx-swap="outerHTML">{{ crumb.name }}</a>
+    {% endfor %}
+    {% if browse.current %}
+    <a class="btn btn-sm btn-ghost crumb-up" href="/settings?browse={{ browse.parent }}"
+       hx-get="/settings/browse?path={{ browse.parent }}"
+       hx-target="#vault-browser" hx-swap="outerHTML">返回上级</a>
+    {% endif %}
+  </div>
+
+  <div class="help mb-sm">
+    本目录（含子目录）共 {{ browse.md_count }} 篇 Markdown{% if not browse.writable %}；挂载为只读，页面只读不写{% endif %}。
+  </div>
+
+  {% if browse.dirs %}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead><tr><th>子目录</th><th class="num">md 数</th><th class="text-right">操作</th></tr></thead>
+      <tbody>
+        {% for dir in browse.dirs %}
+        <tr>
+          <td class="mono">{{ dir.name }}</td>
+          <td class="num">{{ dir.md_count }}</td>
+          <td class="text-right">
+            <div class="row-actions">
+              <a class="btn btn-sm btn-ghost" href="/settings?browse={{ dir.rel }}"
+                 hx-get="/settings/browse?path={{ dir.rel }}"
+                 hx-target="#vault-browser" hx-swap="outerHTML">进入</a>
+              <form method="post" action="/settings/vault" class="inline-form"
+                    hx-post="/settings/vault" hx-target="#vault-card" hx-swap="outerHTML">
+                <input type="hidden" name="path" value="{{ dir.rel }}">
+                <button class="btn btn-sm btn-primary" type="submit">选为当前库</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">这个目录下没有子目录</div>
+    <div class="empty-hint">可以直接把当前目录设为知识库，或返回上级另选一个目录。</div>
+  </div>
+  {% endif %}
+
+  {% if browse.current %}
+  <form method="post" action="/settings/vault" class="row mt-sm"
+        hx-post="/settings/vault" hx-target="#vault-card" hx-swap="outerHTML">
+    <input type="hidden" name="path" value="{{ browse.current }}">
+    <button class="btn btn-sm" type="submit">把当前目录设为知识库</button>
+    {% if vault.path and vault.path != browse.current %}
+    <span class="small muted">当前库：<span class="mono">{{ vault.path }}</span></span>
+    {% elif vault.path == browse.current %}
+    <span class="small muted">这就是当前知识库</span>
+    {% endif %}
+  </form>
+  {% else %}
+  <div class="help mt-sm">请逐级「进入」到具体知识库目录后再选为当前库（根目录本身不能作为知识库）。</div>
+  {% endif %}
+  {% elif not vault.available %}
+  <div class="alert alert-warn">
+    <div class="alert-title">该项暂不可用</div>
+    <div class="small">{{ vault.reason }}</div>
+  </div>
+  {% else %}
+  <div class="help mt-sm">暂无目录可浏览。</div>
+  {% endif %}
+</div>

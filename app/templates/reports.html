@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}报告中心{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><script src="/static/reports.js" defer></script>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">报告中心</h1>
+    <div class="page-sub">六种粒度的工作总结：单项工作 / 周 / 月 / 半年 / 年 / 自定义区间</div>
+  </div>
+  {% include "partials/tasks_owner_switch.html" %}
+</div>
+
+{% if llm_mock %}
+<div class="alert alert-warn">
+  <div class="alert-title">当前为 MOCK 模式</div>
+  未配置 LLM_API_KEY：报告由本地模板基于真实入库数据渲染，正文首行会标注 MOCK，不会被伪装成大模型产出。
+</div>
+{% endif %}
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">生成报告</h2></div>
+  <div class="card-body">
+    <form method="post" action="/reports{{ as_q|default('', true) }}" class="form" id="report-form">
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="report-kind">报告粒度</label>
+          <select class="select" id="report-kind" name="kind">
+            {% for value, label in kinds %}
+            <option value="{{ value }}"{% if form.kind == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field" id="field-task">
+          <label class="label" for="task_id">选择工作（单项工作必填）</label>
+          <select class="select" id="task_id" name="task_id">
+            <option value="">— 请选择工作 —</option>
+            {% for t in task_options %}
+            <option value="{{ t.id }}"{% if form.task_id == t.id|string %} selected{% endif %}>#{{ t.id }} {{ t.title }}（{{ t.status | status_label }}）</option>
+            {% else %}
+            <option value="" disabled>暂无可选工作</option>
+            {% endfor %}
+          </select>
+          <span class="help">只有「单项工作」粒度需要指定具体工作。</span>
+        </div>
+      </div>
+
+      <div class="form-row" id="field-range">
+        <div class="field">
+          <label class="label" for="start">起始日</label>
+          <input class="input" type="date" id="start" name="start" value="{{ form.start }}">
+        </div>
+        <div class="field">
+          <label class="label" for="end">结束日</label>
+          <input class="input" type="date" id="end" name="end" value="{{ form.end }}">
+        </div>
+        <span class="help">仅「自定义区间」需要，两栏都要填，且起始日不能晚于结束日。</span>
+      </div>
+
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" name="use_obsidian" value="1"{% if form.use_obsidian %} checked{% endif %}>
+          使用 Obsidian 知识库上下文
+        </label>
+        <span class="help">勾选后会检索知识库并作为背景参考；知识库未就绪时自动跳过，并在报告末尾注明本次未使用。</span>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" data-loading-text="生成中，请勿关闭页面…">生成报告</button>
+        <span class="help">生成是同步请求，真实模型通常需要 30–60 秒；MOCK 模式即时返回。</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">历史报告 <span class="bucket-count">{{ reports_list | length }}</span></h2>
+    <span class="small muted">按生成时间倒序，最多 50 份</span>
+  </div>
+  {% if reports_list %}
+  <div class="card-body tight">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>生成时间</th>
+            <th>粒度</th>
+            <th>范围</th>
+            <th>模式</th>
+            <th class="num">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reports_list %}
+          <tr>
+            <td class="nowrap">{{ r.created_at[:16] | replace("T", " ") }}</td>
+            <td class="nowrap">{{ kind_labels.get(r.kind, r.kind) }}</td>
+            <td>{{ r.scope_label }}</td>
+            <td>
+              {% if r.is_mock %}<span class="badge badge-mock">MOCK</span>{% else %}<span class="badge badge-live">LIVE</span>{% endif %}
+            </td>
+            <td class="num nowrap">
+              <a class="btn btn-sm" href="/reports/{{ r.id }}{{ as_q|default('', true) }}">查看</a>
+              <form method="post" action="/reports/{{ r.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
+                    data-confirm="确定删除这份报告吗？删除后不可恢复。">
+                <button class="btn btn-sm btn-danger" type="submit">删除</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-title">还没有生成任何报告</div>
+    <div class="empty-hint">选择粒度后点击「生成报告」，产出的 Markdown 会存档在本地数据库。</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% if scan_now %}
+<div class="alert {% if scan_now.ok %}alert-success{% elif scan_now.has_items %}alert-warn{% else %}alert-info{% endif %}">
+  <div class="alert-title">已立即扫描一次</div>
+  <div class="small">
+    {% set c = scan_now.counts or {} %}
+    逾期 {{ c.get('overdue', 0) }} · 今日 {{ c.get('today', 0) }} · 临期 {{ c.get('soon', 0) }}
+    · 渠道 {{ scan_now.channel }}
+    {% if scan_now.error %} · 原因：{{ scan_now.error }}{% endif %}
+    {% if scan_now.note %} · {{ scan_now.note }}{% endif %}
+  </div>
+</div>
+<div class="mt-sm"></div>
+{% endif %}
+{% if last_scan %}
+  {% set c = last_scan.counts or {} %}
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value is-danger">{{ c.get('overdue', 0) }}</div>
+      <div class="stat-label">逾期</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value is-warn">{{ c.get('today', 0) }}</div>
+      <div class="stat-label">今日到期</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value is-info">{{ c.get('soon', 0) }}</div>
+      <div class="stat-label">{{ last_scan.soon_days if last_scan.soon_days is not none else 3 }} 日内到期</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ c.get('total', 0) }}</div>
+      <div class="stat-label">合计待提醒</div>
+    </div>
+  </div>
+  <dl class="settings-kv mt">
+    <dt>扫描时间</dt><dd>{{ last_scan.sent_at or '未知' }}</dd>
+    <dt>业务日期</dt><dd>{{ last_scan.today_date or '未知' }}</dd>
+    <dt>是否推送</dt>
+    <dd>
+      {% if last_scan.ok %}<span class="badge badge-done">推送成功</span>
+      {% elif not last_scan.has_items %}<span class="badge badge-muted">无待提醒项，未推送</span>
+      {% else %}<span class="badge badge-p3">推送失败</span>{% endif %}
+      · 渠道 <span class="mono">{{ last_scan.channel }}</span>
+    </dd>
+    {% if last_scan.error %}<dt>原因</dt><dd>{{ last_scan.error }}</dd>{% endif %}
+  </dl>
+  {% if last_scan.message_head %}<pre class="settings-msg">{{ last_scan.message_head }}</pre>{% endif %}
+{% else %}
+<div class="empty empty-compact">
+  <div class="empty-title">还没有扫描记录</div>
+  <div class="empty-hint">调度器会在每天 {{ scheduler.remind_time }} 自动扫描；也可以点上方「立即扫描一次」。</div>
+</div>
+{% endif %}
+{% if auth_mode == 'multi' %}
+<div class="help mt-sm" id="scan-audience">
+  当前用户 <strong>{{ user_count or 0 }}</strong> 人 ·
+  最近一次扫描涉及 <strong>{{ (last_scan or {}).get('active_user_count', 0) }}</strong> 人
+  {%- if last_scan and last_scan.get('mode') == 'multi' %}（合并日报共 {{ last_scan.get('user_count', 0) }} 人参与排期）{% endif %}
+</div>
+{% endif %}

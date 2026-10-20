@@ -1,0 +1,7 @@
+.venv/
+data/
+.env
+backup/
+__pycache__/
+*.pyc
+.playwright/

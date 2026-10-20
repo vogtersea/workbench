@@ -1,0 +1,12 @@
+{# 状态切换按钮组：htmx 局部刷新目标 #statusbar。上下文：task / status_options。 #}
+<div id="statusbar" class="statusbar-inline">
+  {% for value, label in status_options %}
+  <form method="post" action="/tasks/{{ task.id }}/status{{ as_q|default('', true) }}" class="inline-form"
+        hx-post="/tasks/{{ task.id }}/status{{ as_q|default('', true) }}" hx-target="#statusbar" hx-swap="outerHTML">
+    <input type="hidden" name="status" value="{{ value }}">
+    <button class="btn btn-sm{{ ' btn-primary' if task.status == value else '' }}" type="submit"
+            {% if task.status == value %}aria-current="true"{% endif %}>{{ label }}</button>
+  </form>
+  {% endfor %}
+  {% if task.status == 'done' %}<a class="btn btn-sm btn-ghost" href="/archive">去归档区</a>{% endif %}
+</div>

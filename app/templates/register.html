@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>邀请码注册 · 工作台</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/auth.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body class="auth-body">
+<main class="auth-card auth-card-wide">
+  <h1 class="auth-title">邀请码注册</h1>
+  <p class="muted small auth-sub">填写管理员发给你的邀请码，创建自己的账号。</p>
+  {% include "partials/auth_flash.html" %}
+  <form method="post" action="/register" class="form">
+    <div class="field">
+      <label class="label" for="code">邀请码</label>
+      <input class="input" id="code" name="code" type="text" value="{{ code or '' }}"
+             autocomplete="off" required autofocus>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label class="label" for="username">用户名</label>
+        <input class="input" id="username" name="username" type="text" value="{{ username or '' }}"
+               autocomplete="username" required>
+        <span class="help">2-32 位，字母或数字开头，可用字母数字与 _ . @ -</span>
+      </div>
+      <div class="field">
+        <label class="label" for="display_name">显示名</label>
+        <input class="input" id="display_name" name="display_name" type="text"
+               value="{{ display_name or '' }}" placeholder="可留空">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label class="label" for="password">密码</label>
+        <input class="input" id="password" name="password" type="password"
+               autocomplete="new-password" required>
+        <span class="help">至少 6 位</span>
+      </div>
+      <div class="field">
+        <label class="label" for="password2">确认密码</label>
+        <input class="input" id="password2" name="password2" type="password"
+               autocomplete="new-password" required>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">注册并登录</button>
+      <a class="btn btn-ghost" href="/login">已有账号，去登录</a>
+    </div>
+  </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# 构建上下文瘦身：这些内容不需要进镜像
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+data/
+backup/
+vault/
+.env
+.playwright/
+*.db
+*.db-wal
+*.db-shm
+*.log
+.idea/
+.vscode/
+.DS_Store

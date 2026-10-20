@@ -1,0 +1,12 @@
+{# 管理员「查看用户」下拉（SPEC 15.1 / 15.9）：仅多用户模式的管理员可见。上下文：owner_switch。 #}
+{% if owner_switch and owner_switch.users %}
+<form class="owner-switch no-print" method="get" action="{{ request.url.path }}">
+  <label class="label" for="owner-switch">查看用户</label>
+  <select class="select" id="owner-switch" name="as" onchange="this.form.submit()">
+    {% for u in owner_switch.users %}
+    <option value="{{ u.id }}"{% if u.id == owner_switch.current %} selected{% endif %}>{{ u.display_name or u.username }}{% if u.role == 'admin' %}（管理员）{% endif %}</option>
+    {% endfor %}
+  </select>
+  <noscript><button class="btn btn-sm" type="submit">切换</button></noscript>
+</form>
+{% endif %}

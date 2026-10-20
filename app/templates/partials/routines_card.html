@@ -1,0 +1,33 @@
+{# 仪表盘「本期例行」卡片（SPEC 16.4）。上下文：routine_card（open / total / rows / url）。 #}
+<div class="card routine-card">
+  <div class="card-head">
+    <h2 class="card-title">本期例行</h2>
+    <span class="bucket-count">{{ routine_card.open }} / {{ routine_card.total }}</span>
+  </div>
+  {% if routine_card.total %}
+  <div class="task-list">
+    {% for item in routine_card.rows %}
+    <div class="task-row">
+      <div class="task-main">
+        <div class="task-title"><a href="{{ item.detail_url }}">{{ item.title }}</a></div>
+        <div class="task-meta">
+          <span class="badge badge-routine">例行 · {{ item.freq_label }}</span>
+          <span class="badge {{ item.state_class }}">{{ item.state }}</span>
+          <span class="muted small nowrap">本期截止 {{ item.due_cn }}{% if item.due_time %} {{ item.due_time }}{% endif %}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="card-foot">
+    <span class="muted small">未完成 {{ routine_card.open }} 项 / 共 {{ routine_card.total }} 项</span>
+    <a class="btn btn-sm" href="{{ routine_card.url }}">打开例行工作</a>
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">本期还没有例行任务</div>
+    <div class="empty-hint">建一个「每周五交周报」这样的模板，系统会按周期自动生成本期任务</div>
+    <div class="mt-sm"><a class="btn btn-sm" href="{{ routine_card.url }}">去创建例行工作</a></div>
+  </div>
+  {% endif %}
+</div>

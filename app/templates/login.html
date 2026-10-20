@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · 工作台</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/auth.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body class="auth-body">
+<main class="auth-card">
+  <h1 class="auth-title">工作台</h1>
+  {% if mode == 'legacy' %}
+  <p class="muted small auth-sub">请输入访问口令</p>
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+  <form method="post" action="/login" class="form">
+    <input type="hidden" name="next" value="{{ next_url or '/' }}">
+    <div class="field">
+      <label class="label" for="password">口令</label>
+      <input class="input" id="password" name="password" type="password"
+             autocomplete="current-password" required autofocus>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">登录</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="muted small auth-sub">请使用用户名与密码登录</p>
+  {% include "partials/auth_flash.html" %}
+  <form method="post" action="/login" class="form">
+    <input type="hidden" name="next" value="{{ next_url or '/' }}">
+    <div class="field">
+      <label class="label" for="username">用户名</label>
+      <input class="input" id="username" name="username" type="text"
+             value="{{ username or '' }}" autocomplete="username" required autofocus>
+    </div>
+    <div class="field">
+      <label class="label" for="password">密码</label>
+      <input class="input" id="password" name="password" type="password"
+             autocomplete="current-password" required>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">登录</button>
+    </div>
+  </form>
+  <p class="muted small auth-foot">没有账号？请向管理员索取邀请码后自助注册。</p>
+  {% endif %}
+</main>
+</body>
+</html>

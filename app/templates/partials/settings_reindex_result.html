@@ -1,0 +1,18 @@
+{% if outcome %}
+<div class="alert {% if outcome.ok %}alert-success{% else %}alert-warn{% endif %}">
+  <div class="alert-title">
+    {% if outcome.ok %}索引重建完成{% else %}索引重建未完成{% endif %}
+  </div>
+  <div class="small">
+    {% if outcome.at %}时间 {{ outcome.at }}{% endif %}
+    {% if outcome.error %} · 原因：{{ outcome.error }}{% endif %}
+    {% if outcome.result %}
+      · 扫描 {{ outcome.result.get('scanned', '-') }}
+      · 入库 {{ outcome.result.get('indexed', '-') }}
+      · 跳过 {{ outcome.result.get('skipped', '-') }}
+      · 错误 {{ outcome.result.get('errors', '-') }}
+      · 耗时 {{ outcome.result.get('elapsed_ms', '-') }}ms
+    {% endif %}
+  </div>
+</div>
+{% endif %}

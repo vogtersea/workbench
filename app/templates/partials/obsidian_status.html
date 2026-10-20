@@ -1,0 +1,51 @@
+{# Obsidian 状态卡：既被 obsidian.html 引用，也作为 POST /obsidian/reindex 的 htmx 片段单独渲染。 #}
+{% if reindex_result %}
+<div class="alert {{ 'alert-success' if reindex_result.ok else 'alert-warn' }}">
+  <div class="alert-title">{{ '索引重建完成' if reindex_result.ok else '索引未完成' }}</div>
+  <div class="row small">
+    <span>扫描 <strong>{{ reindex_result.scanned }}</strong> 篇</span>
+    <span>更新 <strong>{{ reindex_result.indexed }}</strong> 篇</span>
+    <span>跳过 <strong>{{ reindex_result.skipped }}</strong> 篇</span>
+    <span>清理 <strong>{{ reindex_result.removed }}</strong> 篇</span>
+    <span>失败 <strong>{{ reindex_result.errors }}</strong> 篇</span>
+    <span>耗时 <strong>{{ reindex_result.elapsed_ms }}</strong> ms</span>
+  </div>
+  {% if reindex_result.message %}<div class="small mt-sm">{{ reindex_result.message }}</div>{% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">索引状态
+      <span class="badge {{ 'badge-done' if stats.notes else 'badge-muted' }}">{{ stats.notes }} 篇笔记</span>
+    </h2>
+    <div class="card-actions">
+      <form method="post" action="/obsidian/reindex" class="inline-form"
+            hx-post="/obsidian/reindex" hx-target="#obsidian-status" hx-swap="innerHTML">
+        <input type="hidden" name="q" value="{{ q }}">
+        <button type="submit" class="btn btn-primary btn-sm" data-loading-text="索引中…">重建索引</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">{{ stats.notes }}</div>
+        <div class="stat-label">已索引笔记</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{ stats.fts_rows }}</div>
+        <div class="stat-label">全文索引行</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value obs-stat-text {{ 'is-success' if stats.last_index else 'is-warn' }}">{{ stats.last_index or '尚未索引' }}</div>
+        <div class="stat-label">上次索引时间</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value obs-stat-text">{{ stats.tokenizer }}</div>
+        <div class="stat-label">FTS 分词器</div>
+      </div>
+    </div>
+    <p class="help mt-sm">vault：<span class="mono">{{ stats.vault }}</span> · 只读索引（不写回 note、不跟随越界符号链接）</p>
+  </div>
+</div>

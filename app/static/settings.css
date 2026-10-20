@@ -1,0 +1,82 @@
+/* 设置页专用补充样式（app.css 已冻结，本文件只补该页需要的两个类） */
+
+/* 扫描摘要里的纯文本预览：保留换行、可滚动 */
+.settings-msg {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 10px 0 0;
+  max-height: 280px;
+  overflow: auto;
+}
+
+/* 系统信息 / Obsidian 的键值网格 */
+.settings-kv {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.settings-kv dt { color: var(--text-muted); }
+.settings-kv dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .settings-kv { grid-template-columns: 1fr; gap: 2px; }
+  .settings-kv dd { margin-bottom: 8px; }
+}
+/* ---- 大模型 / 知识库卡片（SPEC 14） ---- */
+
+/* 表格行内的按钮组：编辑 + 删除并排 */
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* 目录面包屑 */
+.crumbs { word-break: break-all; }
+.crumbs .crumb { color: var(--text); }
+.crumbs .crumb:first-child { color: var(--text-muted); }
+
+.crumb-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin: 6px 0 10px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+.crumb-link {
+  color: var(--accent, #6366f1);
+  text-decoration: none;
+  padding: 1px 3px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.crumb-link:hover { background: var(--surface); text-decoration: underline; }
+.crumb-sep { color: var(--text-muted); font-family: var(--font-mono); }
+.crumb-up { margin-left: auto; }
+
+@media (max-width: 640px) {
+  .crumb-up { margin-left: 0; }
+}

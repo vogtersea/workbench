@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Obsidian 知识库{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/obsidian.css">{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">Obsidian 知识库</div>
+    <div class="page-sub">只读索引 · 全文检索 · 为报告生成提供背景笔记</div>
+  </div>
+  <div class="row">
+    <a class="btn btn-sm" href="/reports">报告中心</a>
+    <a class="btn btn-sm" href="/settings">设置</a>
+  </div>
+</div>
+
+{% if not stats.available %}
+<div class="alert alert-warn">
+  <div class="alert-title">未挂载 Obsidian vault，知识库功能已禁用</div>
+  <p class="small">当前 VAULT_DIR = <span class="mono">{{ stats.vault }}</span>，该目录不存在，因此索引与检索不可用（其余功能不受影响）。</p>
+  <ul class="plain-list">
+    <li>Docker：把 vault 放到项目根目录 vault/，compose 里保留 <span class="mono">./vault:/vault:ro</span> 后重启容器。</li>
+    <li>本机：设置环境变量 <span class="mono">VAULT_DIR=/绝对路径/你的vault</span>（或写进 .env）后重启应用。</li>
+    <li>挂载成功后回到本页点「重建索引」，即可搜索全部 .md 笔记。</li>
+  </ul>
+</div>
+{% else %}
+<div id="obsidian-status">
+  {% include "partials/obsidian_status.html" %}
+</div>
+
+<form class="card" method="get" action="/obsidian">
+  <div class="card-head">
+    <h2 class="card-title">检索笔记</h2>
+    {% if stats.notes == 0 %}<span class="badge badge-muted">索引为空</span>{% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <input class="input obs-search-input" type="search" name="q" value="{{ q }}"
+             placeholder="输入关键词，如 迁移 / 数仓 / 复盘" aria-label="检索关键词">
+      <button class="btn btn-primary" type="submit">搜索</button>
+      {% if q %}<a class="btn" href="/obsidian">清空</a>{% endif %}
+    </div>
+    <p class="help mt-sm">3 字及以上走 FTS5 全文索引（含正文子串）；1-2 字中文短词自动回退到标题 / 标签 / 正文匹配。索引同名笔记按 mtime 增量重建，绝不写回 vault。</p>
+  </div>
+</form>
+
+{% if search_error %}
+<div class="alert alert-danger">{{ search_error }}</div>
+{% endif %}
+
+{% if searched %}
+  {% include "partials/obsidian_results.html" %}
+{% elif stats.notes == 0 %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-title">还没有索引任何笔记</div>
+    <div class="empty-hint">点上方「重建索引」扫描 <span class="mono">{{ stats.vault }}</span> 下的全部 .md 文件。</div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty empty-compact">
+    <div class="empty-title">已索引 {{ stats.notes }} 篇笔记</div>
+    <div class="empty-hint">在上方输入关键词开始检索；报告生成时会自动带上相关笔记作为背景。</div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}例行工作{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><link rel="stylesheet" href="/static/routines.css">{% endblock %}
+{% block topbar_actions %}<a class="btn btn-primary btn-sm" href="#routine-new">新建例行工作</a>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">例行工作</div>
+    <div class="page-sub">模板 {{ total }} 个（启用 {{ active_total }}） · 本期例行任务 {{ instances|length }} 项，未完成 {{ open_count }} · 今天 {{ today_cn }}</div>
+  </div>
+  <div class="row">
+    {% include "partials/tasks_owner_switch.html" %}
+    <a class="btn btn-sm" href="/">仪表盘</a>
+    <a class="btn btn-sm" href="/week">周视图</a>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if notice %}<div class="alert alert-success">{{ notice }}</div>{% endif %}
+{% if errors %}
+<div class="alert alert-danger">
+  <div class="alert-title">请检查表单</div>
+  <ul class="error-list">{% for msg in errors %}<li>{{ msg }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="card" id="routine-new">
+  <div class="card-head">
+    <h2 class="card-title">新建例行工作</h2>
+    <span class="page-sub">一直存在的固定周期事项；系统按周期自动生成本期任务，历史可回溯</span>
+  </div>
+  <div class="card-body">
+    <form class="form" method="post" action="/routines{{ as_q|default('', true) }}">
+      {% include "partials/routines_form_fields.html" %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">创建模板</button>
+        <span class="help">创建后立刻生成本期任务；不补历史周期</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">本期例行任务</h2>
+    <span class="bucket-count">{{ open_count }} / {{ instances|length }}</span>
+  </div>
+  {% if instances %}
+  <div class="task-list">
+    {% for row in instances %}{% include "partials/routines_instance_row.html" %}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">本期还没有例行任务</div>
+    <div class="empty-hint">先在上面建一个模板；或模板的起始周期还没到</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if groups %}
+{% for group in groups %}
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">{{ group.label }}</h2>
+    <span class="bucket-count">{{ group.rows|length }}</span>
+  </div>
+  <div class="task-list">
+    {% for item in group.rows %}{% include "partials/routines_list_row.html" %}{% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-title">还没有例行模板</div>
+    <div class="empty-hint">例行工作管的是「每周 / 每月都必须做一次」的事：建好模板，系统到点自动生成本期任务</div>
+    <div class="routine-examples">
+      <span class="routine-example">每天站会纪要 <span class="faint">每日 · 周期末</span></span>
+      <span class="routine-example">每周五交周报 <span class="faint">每周 · 第 5 天</span></span>
+      <span class="routine-example">每月月末报表 <span class="faint">每月 · 周期末</span></span>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{# 周视图某一天里的一格工作。上下文变量：t（dict）。 #}
+{% set state = {'due-overdue': 'is-overdue', 'due-today': 'is-today', 'due-soon': 'is-soon'}.get(t.due_class, '') %}
+<a class="day-item {{ state }}" href="/tasks/{{ t.id }}{{ as_q|default('', true) }}">
+  <div class="day-item-title">{{ t.title }}</div>
+  <div class="day-item-meta">
+    {% if t.due_time %}<span class="mono nowrap">{{ t.due_time }}</span>{% endif %}
+    <span class="badge badge-p{{ t.priority }}">{{ t.priority|priority_label }}</span>
+    <span class="badge badge-{{ t.status }}">{{ t.status|status_label }}</span>
+    {% if t.routine_badge %}<span class="badge badge-routine">{{ t.routine_badge }}</span>{% endif %}
+    {% if t.project_name %}<span class="tag">{{ t.project_name }}</span>{% endif %}
+  </div>
+</a>

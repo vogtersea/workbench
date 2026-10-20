@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}项目{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css">{% endblock %}
+{% block topbar_actions %}<a class="btn btn-primary btn-sm" href="/tasks/new">新建工作</a>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">项目</div>
+    <div class="page-sub">共 {{ total }} 个项目 · 卡片里是各项目的活跃工作</div>
+  </div>
+  <div class="row">
+    <a class="btn btn-sm" href="/">仪表盘</a>
+    <a class="btn btn-sm" href="/week">周视图</a>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">新建项目</h2></div>
+  <div class="card-body">
+    <form class="form" method="post" action="/projects{{ as_q|default('', true) }}">
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="p-name">名称 <span class="faint">必填</span></label>
+          <input class="input" id="p-name" name="name" value="{{ form.name }}" maxlength="80" required
+                 placeholder="例如：季度复盘">
+        </div>
+        <div class="field">
+          <label class="label" for="p-color">颜色</label>
+          <input class="input input-color" id="p-color" name="color" type="color"
+                 value="{{ form.color or '#6366f1' }}">
+        </div>
+        <div class="field">
+          <label class="label" for="p-desc">描述</label>
+          <input class="input" id="p-desc" name="description" value="{{ form.description }}"
+                 placeholder="可选">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">创建项目</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if items %}
+{% for item in items %}
+<div class="card bucket">
+  <div class="card-head">
+    <h2 class="card-title">
+      <span class="color-dot" style="background: {{ item.project.color }}"></span>{{ item.project.name }}
+    </h2>
+    <span class="row">
+      <span class="bucket-count">活跃 {{ item.project.active_count }}</span>
+      <span class="faint small">累计 {{ item.project.total_count }}</span>
+      <a class="btn btn-sm" href="/tasks/new?project_id={{ item.project.id }}{{ as_q|default('', true)|replace('?', '&') }}">添加工作</a>
+    </span>
+  </div>
+  {% if item.project.description %}
+  <div class="card-body"><div class="muted small">{{ item.project.description }}</div></div>
+  {% endif %}
+  {% if item.tasks %}
+  <div class="task-list">
+    {% for t in item.tasks %}{% include "partials/tasks_row.html" %}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">没有活跃工作</div>
+    <div class="empty-hint">在这个项目下新建工作，或在编辑工作里选它</div>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-title">还没有项目</div>
+    <div class="empty-hint">项目是可选的归类维度，用来把工作按主题聚合</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

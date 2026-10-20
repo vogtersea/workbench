@@ -1,0 +1,17 @@
+{% set channel_labels = {
+  'generic_json': '通用 JSON', 'wecom_text': '企业微信', 'feishu_text': '飞书',
+  'serverchan': 'Server 酱', 'telegram': 'Telegram', 'bark': 'Bark',
+  'disabled': '未配置（仅站内）', 'error': '执行异常'
+} %}
+{% if result %}
+<div class="alert {% if result.ok %}alert-success{% elif result.channel == 'disabled' %}alert-warn{% else %}alert-danger{% endif %}">
+  <div class="alert-title">
+    {% if result.ok %}测试推送成功{% elif result.channel == 'disabled' %}未配置 Webhook，仅写了站内记录{% else %}测试推送失败{% endif %}
+  </div>
+  <div class="small">
+    渠道 {{ channel_labels.get(result.channel, result.channel) }}
+    {% if result.sent_at %} · 时间 {{ result.sent_at }}{% endif %}
+    {% if result.error %} · 原因：{{ result.error }}{% endif %}
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}用户管理{% endblock %}
+{% block head_extra %}
+<style>
+  .auth-delete-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .auth-delete-form .input-sm { width: auto; max-width: 132px; }
+  .auth-purge-confirm {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--danger); white-space: nowrap;
+  }
+  .auth-purge-confirm[hidden] { display: none; }
+  .auth-owned { font-size: 11.5px; color: var(--text-faint); white-space: nowrap; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">用户管理</h2>
+    <div class="card-actions">
+      <a class="btn btn-ghost btn-sm" href="/admin/invites">邀请码</a>
+    </div>
+  </div>
+  <div class="card-body">
+    {% include "partials/auth_flash.html" %}
+    <p class="muted small">管理员可查看与操作全部用户数据；成员只能看到自己的数据。</p>
+    <form method="post" action="/admin/users" class="form auth-inline-form">
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="username">用户名</label>
+          <input class="input" id="username" name="username" type="text" required>
+        </div>
+        <div class="field">
+          <label class="label" for="display_name">显示名</label>
+          <input class="input" id="display_name" name="display_name" type="text" placeholder="可留空">
+        </div>
+        <div class="field">
+          <label class="label" for="password">初始密码</label>
+          <input class="input" id="password" name="password" type="password"
+                 autocomplete="new-password" required>
+        </div>
+        <div class="field">
+          <label class="label" for="role">角色</label>
+          <select class="input" id="role" name="role">
+            <option value="user">成员</option>
+            <option value="admin">管理员</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">创建用户</button>
+        <span class="help">密码至少 6 位；用户名 2-32 位。</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">全部用户（{{ users|length }}）</h2></div>
+  <div class="card-body">
+    {% if users %}
+    <div class="table-wrap">
+      <table class="table table-compact">
+        <thead>
+          <tr>
+            <th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>状态</th>
+            <th>数据（任务/项目/报告）</th><th>最近登录</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          {% set c = counts.get(u.id) or {} %}
+          {% set is_me = me and me.id == u.id %}
+          <tr>
+            <td class="num">{{ u.id }}</td>
+            <td>
+              {{ u.username }}
+              {% if is_me %}<span class="badge badge-muted">我</span>{% endif %}
+            </td>
+            <td>{{ u.display_name or '—' }}</td>
+            <td>
+              {% if u.role == 'admin' %}
+              <span class="badge badge-admin">管理员</span>
+              {% else %}
+              <span class="badge badge-user">成员</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.active %}
+              <span class="badge badge-active">启用</span>
+              {% else %}
+              <span class="badge badge-inactive">已停用</span>
+              {% endif %}
+            </td>
+            <td class="muted small">
+              {{ c.get('tasks', 0) }} / {{ c.get('projects', 0) }} / {{ c.get('reports', 0) }}
+            </td>
+            <td class="muted small">{{ u.last_login_at or '—' }}</td>
+            <td>
+              <div class="auth-actions">
+                <form method="post" action="/admin/users/{{ u.id }}/password" class="auth-mini-form">
+                  <input class="input input-sm" name="password" type="password"
+                         placeholder="新密码" autocomplete="new-password" required>
+                  <button class="btn btn-sm" type="submit">重置</button>
+                </form>
+                {% if not is_me %}
+                <form method="post" action="/admin/users/{{ u.id }}/toggle" class="inline-form">
+                  <button class="btn btn-sm" type="submit">
+                    {{ '停用' if u.active else '启用' }}
+                  </button>
+                </form>
+                {% set owned_total = c.get('tasks', 0) + c.get('projects', 0) + c.get('reports', 0) %}
+                <form method="post" action="/admin/users/{{ u.id }}/delete"
+                      class="auth-delete-form" data-owned="{{ owned_total }}">
+                  <select class="input input-sm" name="mode" aria-label="数据处置方式">
+                    <option value="transfer">数据转归</option>
+                    <option value="purge">彻底删除数据</option>
+                  </select>
+                  <select class="input input-sm" name="transfer_to" aria-label="转归给谁">
+                    <option value="">→ 我自己</option>
+                    {% for t in users if t.active and t.id != u.id %}
+                    <option value="{{ t.id }}">→ {{ t.display_name or t.username }}</option>
+                    {% endfor %}
+                  </select>
+                  <label class="auth-purge-confirm" hidden>
+                    <input type="checkbox" name="confirm" value="1">
+                    确认删除 {{ owned_total }} 条
+                  </label>
+                  <button class="btn btn-sm btn-danger" type="submit">删除并转归</button>
+                  <span class="auth-owned">名下 {{ owned_total }} 条</span>
+                </form>
+                {% else %}
+                <span class="muted small">不能停用或删除自己</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-title">还没有用户</div>
+      <div class="empty-hint">用上方表单创建第一个账号。</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+(function () {
+  document.querySelectorAll('.auth-delete-form').forEach(function (form) {
+    var mode = form.querySelector('[name="mode"]');
+    var target = form.querySelector('[name="transfer_to"]');
+    var label = form.querySelector('.auth-purge-confirm');
+    var box = form.querySelector('[name="confirm"]');
+    var button = form.querySelector('button[type="submit"]');
+    var owned = form.getAttribute('data-owned') || '0';
+
+    function sync() {
+      var purge = mode.value === 'purge';
+      if (label) label.hidden = !purge;
+      if (target) target.disabled = purge;
+      if (!purge && box) box.checked = false;
+      button.textContent = purge ? '彻底删除（' + owned + ' 条）' : '删除并转归';
+      button.className = purge ? 'btn btn-sm btn-danger-solid' : 'btn btn-sm btn-danger';
+    }
+
+    mode.addEventListener('change', sync);
+    form.addEventListener('submit', function (event) {
+      if (mode.value === 'purge' && box && !box.checked) {
+        event.preventDefault();
+        window.alert('彻底删除需要先勾选「确认删除 ' + owned + ' 条」。');
+      }
+    });
+    sync();
+  });
+})();
+</script>
+{% endblock %}

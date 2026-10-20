@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}{{ routine.title }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><link rel="stylesheet" href="/static/routines.css">{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">{{ routine.title }}</div>
+    <div class="page-sub row">
+      <span class="badge badge-routine">例行 · {{ routine.freq_label }}</span>
+      <span class="badge {{ routine.state_class }}">{{ routine.state }}</span>
+      <span class="badge badge-p{{ routine.priority }}">优先级 {{ routine.priority|priority_label }}</span>
+      {% if not routine.active %}<span class="badge badge-muted">已停用</span>{% endif %}
+      <span class="muted small">{{ routine.next_due_label }}</span>
+    </div>
+  </div>
+  <div class="row">
+    <a class="btn btn-sm" href="/routines{{ as_q|default('', true) }}">回例行工作</a>
+    <a class="btn btn-sm" href="/">仪表盘</a>
+    <a class="btn btn-sm" href="/week">周视图</a>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if notice %}<div class="alert alert-success">{{ notice }}</div>{% endif %}
+{% if errors %}
+<div class="alert alert-danger">
+  <div class="alert-title">请检查表单</div>
+  <ul class="error-list">{% for msg in errors %}<li>{{ msg }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">本期（{{ routine.period_display }}）</h2>
+    <span class="bucket-count">{{ current_row.state if current_row else '未生成' }}</span>
+  </div>
+  {% if current_row %}
+  {% set row = current_row %}{% include "partials/routines_instance_row.html" %}
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">本期实例还没生成</div>
+    <div class="empty-hint">模板的起始周期可能还没到；到点后打开本页即自动生成</div>
+  </div>
+  {% endif %}
+  <div class="card-foot">
+    <span class="muted small">{{ routine.next_due_label }}{% if routine.due_time %} · {{ routine.due_time }}{% endif %} · 本期共 {{ instance_count }} 期实例</span>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">模板信息</h2></div>
+    <div class="card-body">
+      <dl class="info-grid">
+        <div class="info-item">
+          <dt class="info-label">周期</dt>
+          <dd class="info-value">{{ routine.freq_label }}</dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">截止规则</dt>
+          <dd class="info-value">
+            {% if routine.due_rule == 'day_of_period' %}周期第 {{ routine.due_day or 1 }} 天{% else %}周期末{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">本期周期</dt>
+          <dd class="info-value">{{ routine.period_display }} <span class="muted small">{{ routine.period_start }} ~ {{ routine.period_end }}</span></dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">本期截止</dt>
+          <dd class="info-value">{{ routine.due_label }}{% if routine.due_time %} {{ routine.due_time }}{% endif %}<span class="muted small">（{{ routine.due_date }}）</span></dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">项目</dt>
+          <dd class="info-value">
+            {% if routine.project_id %}<span class="tag">项目 #{{ routine.project_id }}</span>{% else %}<span class="faint">未归类</span>{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">标签</dt>
+          <dd class="info-value">
+            {% if routine.tag_list %}{% for tag in routine.tag_list %}<span class="tag">{{ tag }}</span>{% endfor %}{% else %}<span class="faint">无</span>{% endif %}
+          </dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">状态</dt>
+          <dd class="info-value">{% if routine.active %}启用中{% else %}已停用{% endif %}</dd>
+        </div>
+        <div class="info-item">
+          <dt class="info-label">创建 / 更新</dt>
+          <dd class="info-value mono">{{ routine.created_at[:16]|replace('T', ' ') }} / {{ routine.updated_at[:16]|replace('T', ' ') }}</dd>
+        </div>
+      </dl>
+      {% if routine.detail %}
+      <hr>
+      <div class="section-title mb-sm">详情</div>
+      <div class="prose">{{ routine.detail|md }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">完成条件</h2></div>
+    <div class="card-body">
+      {% if routine.done_criteria %}
+      <div class="prose">{{ routine.done_criteria|md }}</div>
+      {% else %}
+      <div class="empty empty-compact">
+        <div class="empty-title">还没有完成条件</div>
+        <div class="empty-hint">在下方「编辑模板」里补充，每期生成的实例会带上它</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">最近 {{ history|length }} 期历史</h2>
+    <span class="bucket-count">{{ instance_count }}</span>
+  </div>
+  {% if history %}
+  <div class="table-wrap">
+    <table class="table table-compact">
+      <thead>
+        <tr><th>期次</th><th>状态</th><th>DDL</th><th>完成时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+        <tr{% if h.is_current %} class="is-current"{% endif %}>
+          <td class="nowrap">{{ h.period_display }}{% if h.is_current %} <span class="badge badge-muted">本期</span>{% endif %}</td>
+          <td><span class="badge {{ h.state_class }}">{{ h.state }}</span></td>
+          <td class="nowrap">{{ h.due_cn }}{% if h.due_time %} {{ h.due_time }}{% endif %}</td>
+          <td class="nowrap">{{ h.completed_label or '—' }}</td>
+          <td><a class="btn btn-sm btn-ghost" href="/tasks/{{ h.id }}{{ as_q|default('', true) }}">详情</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">还没有历史期次</div>
+    <div class="empty-hint">本期任务完成或跳过后会留在这里，最多显示最近 24 期</div>
+  </div>
+  {% endif %}
+</div>
+
+<details class="card"{% if errors %} open{% endif %}>
+  <summary class="card-head details-summary">
+    <h2 class="card-title">编辑模板</h2>
+    <span class="page-sub">改动只影响之后生成的实例，已有实例保持不变</span>
+  </summary>
+  <div class="card-body">
+    <form class="form" method="post" action="/routines/{{ routine.id }}/edit{{ as_q|default('', true) }}">
+      <input type="hidden" name="next" value="/routines/{{ routine.id }}{{ as_q|default('', true) }}">
+      {% include "partials/routines_form_fields.html" %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">保存修改</button>
+        <a class="btn btn-ghost" href="/routines/{{ routine.id }}{{ as_q|default('', true) }}">放弃修改</a>
+      </div>
+    </form>
+  </div>
+</details>
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">跳过 / 启停 / 删除</h2></div>
+  <div class="card-body">
+    <div class="routine-actions">
+      {% if routine.active and current_row and current_row.status in ('todo', 'doing') %}
+      <form method="post" action="/routines/{{ routine.id }}/skip{{ as_q|default('', true) }}" class="inline-form"
+            data-confirm="跳过本期？本期记为已跳过，不计逾期、不再提醒。">
+        <input type="hidden" name="next" value="/routines/{{ routine.id }}{{ as_q|default('', true) }}">
+        <button class="btn btn-sm" type="submit">跳过本期</button>
+      </form>
+      {% endif %}
+      <form method="post" action="/routines/{{ routine.id }}/toggle{{ as_q|default('', true) }}" class="inline-form">
+        <input type="hidden" name="next" value="/routines/{{ routine.id }}{{ as_q|default('', true) }}">
+        <input type="hidden" name="active" value="{{ 0 if routine.active else 1 }}">
+        <button class="btn btn-sm" type="submit">{{ '停用模板' if routine.active else '启用模板' }}</button>
+      </form>
+      <form method="post" action="/routines/{{ routine.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
+            data-confirm="停用「{{ routine.title }}」？模板保留、历史实例保留，之后可重新启用。">
+        <input type="hidden" name="next" value="/routines{{ as_q|default('', true) }}">
+        <input type="hidden" name="purge" value="0">
+        <button class="btn btn-sm btn-danger" type="submit">删除（仅停用）</button>
+      </form>
+      <form method="post" action="/routines/{{ routine.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
+            data-confirm="彻底删除「{{ routine.title }}」？将连同 {{ instance_count }} 条历史实例与它们的进展一起删除，不可恢复。">
+        <input type="hidden" name="next" value="/routines{{ as_q|default('', true) }}">
+        <input type="hidden" name="purge" value="1">
+        <input type="hidden" name="confirm" value="1">
+        <button class="btn btn-sm btn-danger-solid" type="submit">彻底删除（含 {{ instance_count }} 条实例）</button>
+      </form>
+    </div>
+    <div class="help mt-sm">默认「删除」只停用模板：不再生成新实例，历史保留。彻底删除会级联删除全部实例。</div>
+  </div>
+</div>
+{% endblock %}

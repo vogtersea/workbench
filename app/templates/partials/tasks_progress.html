@@ -1,0 +1,52 @@
+{# 进展时间线片段：htmx 局部刷新目标 #progress-block。上下文：task / progress / error。 #}
+<div id="progress-block">
+  {% if error %}<div class="error-text mb-sm">{{ error }}</div>{% endif %}
+
+  {% if progress %}
+  <ol class="timeline">
+    {% for entry in progress %}
+    <li class="timeline-item{{ ' is-latest' if loop.first else '' }}">
+      <span class="timeline-dot"></span>
+      <div class="timeline-meta">{{ entry.created_label }}</div>
+      <div class="timeline-body">{{ entry.content }}</div>
+      {% if entry.link %}
+      <div class="timeline-actions">
+        <a class="timeline-link" href="{{ entry.link }}" target="_blank" rel="noopener noreferrer">{{ entry.link }}</a>
+      </div>
+      {% endif %}
+      <div class="timeline-actions">
+        <form method="post" action="/progress/{{ entry.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
+              data-confirm="确认删除这条进展？">
+          <button class="btn btn-sm btn-ghost" type="submit">删除</button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">还没有进展</div>
+    <div class="empty-hint">每推进一步就记一条，写周报时直接可用</div>
+  </div>
+  {% endif %}
+
+  <form class="form mt" method="post" action="/tasks/{{ task.id }}/progress{{ as_q|default('', true) }}"
+        hx-post="/tasks/{{ task.id }}/progress{{ as_q|default('', true) }}" hx-target="#progress-block" hx-swap="outerHTML"
+        hx-indicator="#progress-indicator">
+    <div class="field">
+      <label class="label" for="p-content">追加进展</label>
+      <textarea class="textarea" id="p-content" name="content" rows="3" required
+                placeholder="今天推进了什么？"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label class="label" for="p-link">相关链接（可选）</label>
+        <input class="input" id="p-link" name="link" type="url" placeholder="https://…">
+      </div>
+      <div class="form-actions is-end">
+        <button class="btn btn-primary" type="submit">保存进展</button>
+        <span class="htmx-indicator help" id="progress-indicator">保存中…</span>
+      </div>
+    </div>
+  </form>
+</div>

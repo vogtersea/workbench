@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}仪表盘{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><link rel="stylesheet" href="/static/routines.css">{% endblock %}
+{% block topbar_actions %}<a class="btn btn-primary btn-sm" href="/tasks/new">新建工作</a>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">仪表盘</div>
+    <div class="page-sub">{{ today_cn }} · 本周自 {{ this_week_label }}（{{ this_week_start }}）起 · 活跃工作 {{ active_total }} 项</div>
+  </div>
+  <div class="row">
+    {% include "partials/tasks_owner_switch.html" %}
+    <a class="btn btn-sm" href="/week">周视图</a>
+    <a class="btn btn-sm" href="/archive">归档</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">快速添加</h2>
+    <span class="page-sub">只填标题即可，详情与完成条件稍后补充</span>
+  </div>
+  <div class="card-body">
+    <form class="form" method="post" action="/tasks{{ as_q|default('', true) }}">
+      <input type="hidden" name="status" value="todo">
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="quick-title">标题</label>
+          <input class="input" id="quick-title" name="title" maxlength="200" required
+                 placeholder="例如：整理周会纪要">
+        </div>
+        <div class="field">
+          <label class="label" for="quick-due">截止日期</label>
+          <input class="input" id="quick-due" name="due_date" type="date">
+        </div>
+        <div class="field">
+          <label class="label" for="quick-priority">优先级</label>
+          <select class="select" id="quick-priority" name="priority">
+            {% for value, label in priority_options %}
+            <option value="{{ value }}"{% if value == 2 %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">添加到本周</button>
+        <a class="btn btn-ghost" href="/tasks/new">填写完整信息</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% include "partials/routines_card.html" %}
+
+{% set sections = [
+  ('overdue', '逾期', 'bucket-overdue', '没有逾期的工作，节奏不错'),
+  ('today', '今日到期', 'bucket-today', '今天没有到期的工作'),
+  ('soon', '临期（' ~ soon_days ~ ' 天内）', 'bucket-soon', '近期没有要到期的工作'),
+  ('this_week', '本周（按所属周）', 'bucket-week', '本周还没有安排工作'),
+  ('no_due', '无 DDL', 'bucket-none', '没有待定日期的工作')
+] %}
+
+{% for key, title, cls, hint in sections %}
+<div class="card bucket {{ cls }}">
+  <div class="card-head">
+    <h2 class="card-title">{{ title }}</h2>
+    <span class="bucket-count">{{ counts[key] }}</span>
+  </div>
+  {% if buckets[key] %}
+  <div class="task-list">
+    {% for t in buckets[key] %}{% include "partials/tasks_row.html" %}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">暂无</div>
+    <div class="empty-hint">{{ hint }}</div>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

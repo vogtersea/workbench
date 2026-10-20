@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}周视图{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><link rel="stylesheet" href="/static/routines.css">{% endblock %}
+{% block topbar_actions %}<a class="btn btn-primary btn-sm" href="/tasks/new">新建工作</a>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="page-title">周视图 · {{ nav_label }}</div>
+    <div class="page-sub">{{ view.start_label }} ~ {{ view.end_label }} · 活跃工作 {{ view.counts.total }} 项</div>
+  </div>
+  <div class="week-nav">
+    <a class="btn btn-sm" href="{{ prev_url }}">← 上一周</a>
+    <a class="btn btn-sm{{ ' btn-primary' if is_current_week else '' }}" href="{{ this_url }}">本周</a>
+    <a class="btn btn-sm" href="{{ next_url }}">下一周 →</a>
+    <a class="btn btn-sm{{ ' btn-primary' if show_routines else '' }}" href="{{ toggle_url }}"
+       title="例行实例默认不进周视图；打开后与一次性工作一起显示">{{ toggle_label }}</a>
+    {% if show_routines %}<span class="badge badge-routine">已含例行</span>{% endif %}
+  </div>
+</div>
+
+<div class="week-grid">
+  {% for day in view.days %}
+  <div class="day-col{{ ' is-today' if day.is_today else '' }}">
+    <div class="day-head">
+      <span class="day-name">{{ day.weekday }}</span>
+      <span class="nowrap">{{ day.md }}{% if day.is_today %} · 今天{% endif %}</span>
+    </div>
+    <div class="day-body">
+      {% for t in day.tasks %}{% include "partials/tasks_day_item.html" %}{% endfor %}
+      {% if not day.tasks %}<div class="empty empty-compact"><div class="empty-hint">无</div></div>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">本周无具体日期</h2>
+    <span class="bucket-count">{{ view.counts.no_due }}</span>
+  </div>
+  {% if view.no_due %}
+  <div class="task-list">
+    {% for t in view.no_due %}{% include "partials/tasks_row.html" %}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty empty-compact">
+    <div class="empty-title">暂无</div>
+    <div class="empty-hint">所属周是本周、但没填截止日期的工作会出现在这里</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if view.outside_week %}
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">归属本周但 DDL 不在本周</h2>
+    <span class="bucket-count">{{ view.counts.outside_week }}</span>
+  </div>
+  <div class="task-list">
+    {% for t in view.outside_week %}{% include "partials/tasks_row.html" %}{% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

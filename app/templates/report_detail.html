@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{% if report %}报告 #{{ report.id }}{% else %}报告不存在{% endif %}{% endblock %}
+{% block content %}
+{% if not report %}
+<div class="card">
+  <div class="card-head"><h2 class="card-title">报告不存在</h2></div>
+  <div class="card-body">
+    <div class="alert alert-danger">报告 #{{ rid }} 不存在或已被删除。</div>
+    <div class="form-actions mt"><a class="btn" href="/reports">返回报告中心</a></div>
+  </div>
+</div>
+{% else %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ report.scope_label }}</h1>
+    <div class="page-sub">
+      {{ kind_labels.get(report.kind, report.kind) }} · 生成于 {{ report.created_at[:16] | replace("T", " ") }}
+    </div>
+  </div>
+  <div class="report-toolbar no-print">
+    <a class="btn btn-sm" href="/reports{{ as_q|default('', true) }}">返回列表</a>
+    <button class="btn btn-sm" type="button" onclick="window.print()">打印</button>
+    <button class="btn btn-sm" type="button" data-copy-target="#report-raw">复制原文</button>
+    <form method="post" action="/reports/{{ report.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
+          data-confirm="确定删除这份报告吗？删除后不可恢复。">
+      <button class="btn btn-sm btn-danger" type="submit">删除</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">
+      {{ kind_labels.get(report.kind, report.kind) }}
+      {% if report.is_mock %}<span class="badge badge-mock">MOCK</span>{% else %}<span class="badge badge-live">LIVE</span>{% endif %}
+    </h2>
+    <div class="report-meta">
+      {% if report.range_start %}
+      <span class="nowrap">{{ report.range_start }} ~ {{ report.range_end }}</span>
+      {% endif %}
+      {% if report.provider %}
+      <span class="mono nowrap">{{ report.provider }}{% if report.model %} / {{ report.model }}{% endif %}</span>
+      {% endif %}
+      <span class="nowrap">#{{ report.id }}</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="prose">{{ report.content_md | md }}</div>
+  </div>
+  {% if notes %}
+  <div class="card-foot no-print">
+    <span class="small muted">知识库上下文命中：</span>
+    {% for n in notes %}<span class="tag">{{ n.title or n.path }}</span>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<textarea id="report-raw" class="hidden" readonly>{{ report.content_md }}</textarea>
+{% endif %}
+{% endblock %}

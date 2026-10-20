@@ -1,0 +1,41 @@
+{# 模板列表一行。上下文：item（模板 dict + state / urls）、as_q。 #}
+<div class="task-row routine-template">
+  <div class="task-main">
+    <div class="task-title"><a href="{{ item.detail_url }}">{{ item.title }}</a></div>
+    <div class="task-meta">
+      <span class="badge badge-routine">例行 · {{ item.freq_label }}</span>
+      <span class="badge {{ item.state_class }}">{{ item.state }}</span>
+      <span class="muted small nowrap">{{ item.next_due_label }}</span>
+      {% if item.due_time %}<span class="muted small nowrap">{{ item.due_time }}</span>{% endif %}
+      <span class="muted small nowrap">本期 {{ item.period_display }}</span>
+      {% if not item.active %}<span class="badge badge-muted">已停用</span>{% endif %}
+      {% if item.project_id %}<span class="tag">项目 #{{ item.project_id }}</span>{% endif %}
+      {% for tag in item.tag_list %}<span class="tag">{{ tag }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="task-side">
+    {% if item.active and item.instance_status in ('todo', 'doing') %}
+    <form method="post" action="/routines/instance/{{ item.instance_id }}/done{{ as_q|default('', true) }}"
+          class="inline-form">
+      <input type="hidden" name="next" value="/routines{{ as_q|default('', true) }}">
+      <button class="btn btn-sm" type="submit">完成本期</button>
+    </form>
+    <form method="post" action="{{ item.skip_url }}" class="inline-form">
+      <input type="hidden" name="next" value="/routines{{ as_q|default('', true) }}">
+      <button class="btn btn-sm btn-ghost" type="submit">跳过本期</button>
+    </form>
+    {% endif %}
+    <a class="btn btn-sm btn-ghost" href="{{ item.detail_url }}">编辑</a>
+    <form method="post" action="{{ item.toggle_url }}" class="inline-form">
+      <input type="hidden" name="next" value="/routines{{ as_q|default('', true) }}">
+      <input type="hidden" name="active" value="{{ 0 if item.active else 1 }}">
+      <button class="btn btn-sm" type="submit">{{ '停用' if item.active else '启用' }}</button>
+    </form>
+    <form method="post" action="{{ item.delete_url }}" class="inline-form"
+          data-confirm="停用「{{ item.title }}」？历史实例会保留，之后可重新启用。">
+      <input type="hidden" name="next" value="/routines{{ as_q|default('', true) }}">
+      <input type="hidden" name="purge" value="0">
+      <button class="btn btn-sm btn-danger" type="submit">删除</button>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,46 @@
+/* 任务域补充样式：只补 app.css 未覆盖的类，不改动 app.css。 */
+
+/* 详情页信息区 */
+.info-grid {
+  display: grid; gap: 10px 18px; margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.info-item { display: grid; gap: 2px; min-width: 0; }
+.info-label { font-size: 11.5px; color: var(--text-faint); }
+.info-value { margin: 0; font-size: 13px; word-break: break-word; }
+
+/* 状态切换按钮组 */
+.statusbar-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* 可折叠的编辑卡片（details > summary） */
+.details-summary { cursor: pointer; list-style: none; }
+.details-summary::-webkit-details-marker { display: none; }
+.details-summary::after { content: '展开'; font-size: 12px; color: var(--text-faint); }
+details[open] .details-summary::after { content: '收起'; }
+
+/* 表单小调整 */
+.form-actions.is-end { align-items: flex-end; }
+.error-list { margin: 0; padding-left: 1.1em; }
+.error-list li { color: var(--danger); font-size: 12px; }
+.input-color { padding: 2px; height: 30px; }
+
+/* 周视图 */
+a.day-item { color: inherit; text-decoration: none; }
+a.day-item:hover { background: var(--surface-2); text-decoration: none; }
+.day-item-title { font-weight: 550; color: var(--text); }
+.day-item-meta {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  margin-top: 3px; font-size: 11.5px; color: var(--text-muted);
+}
+.week-grid .empty-compact { padding: 8px; }
+
+/* 进展时间线链接 */
+.timeline-link { font-size: 12px; word-break: break-all; }
+
+/* 项目色点 */
+.color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* 管理员「查看用户」下拉（SPEC 15.9）：放在仪表盘 / 归档 / 报告页顶部 */
+.owner-switch { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.owner-switch .label { margin: 0; }
+.owner-switch .select { width: auto; min-width: 140px; height: 30px; padding: 2px 6px; }

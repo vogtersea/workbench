@@ -1,0 +1,24 @@
+{# 仪表盘 / 清单里的一行工作。上下文变量：t（tasks.serialize_task 的 dict）。 #}
+<div class="task-row">
+  <div class="task-main">
+    <div class="task-title"><a href="/tasks/{{ t.id }}{{ as_q|default('', true) }}">{{ t.title }}</a></div>
+    <div class="task-meta">
+      <span class="{{ t.due_class }}">{{ t.due_label }}</span>
+      <span class="badge badge-p{{ t.priority }}">优先级 {{ t.priority|priority_label }}</span>
+      <span class="badge badge-{{ t.status }}">{{ t.status|status_label }}</span>
+      {% if t.routine_badge %}<span class="badge badge-routine">{{ t.routine_badge }}</span>{% endif %}
+      {% if t.project_name %}<span class="tag">{{ t.project_name }}</span>{% endif %}
+      {% for tag in t.tag_list %}<span class="tag">{{ tag }}</span>{% endfor %}
+      {% if t.due_date %}<span class="muted small nowrap">DDL {{ t.due_date }}{% if t.due_time %} {{ t.due_time }}{% endif %}</span>{% endif %}
+    </div>
+  </div>
+  <div class="task-side">
+    <a class="btn btn-sm btn-ghost" href="/tasks/{{ t.id }}{{ as_q|default('', true) }}">详情</a>
+    {% if t.status in ('todo', 'doing') %}
+    <form method="post" action="/tasks/{{ t.id }}/status{{ as_q|default('', true) }}" class="inline-form">
+      <input type="hidden" name="status" value="done">
+      <button class="btn btn-sm" type="submit">完成</button>
+    </form>
+    {% endif %}
+  </div>
+</div>

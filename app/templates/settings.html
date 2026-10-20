@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}设置{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/settings.css">{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">设置</h1>
+    <div class="page-sub">大模型配置 · Obsidian 知识库选择 · 每日提醒扫描 · Webhook 推送 · 系统信息</div>
+  </div>
+  <div class="row">
+    {% if can_manage and auth_mode == 'multi' %}
+    <span class="small muted">当前用户 {{ user_count }} 人</span>
+    {% endif %}
+    <span class="small muted">今天 {{ system.today }} · {{ system.tz_name }}</span>
+  </div>
+</div>
+
+{% if saved %}
+<div class="alert alert-success">
+  <div class="alert-title">设置已保存</div>
+  <div class="small">提醒时间改动已同步给后台调度器{% if flash_message %}；{{ flash_message }}{% endif %}</div>
+</div>
+{% elif flash_message %}
+<div class="alert alert-info">{{ flash_message }}</div>
+{% endif %}
+{% if error %}<div class="alert alert-danger"><div class="alert-title">操作失败</div>{{ error }}</div>{% endif %}
+
+{% if can_manage %}
+
+{% include "partials/settings_llm_card.html" %}
+
+{% include "partials/settings_vault_card.html" %}
+
+<form method="post" action="/settings" class="card">
+  <input type="hidden" name="form" value="settings">
+  <div class="card-head">
+    <h2 class="card-title">每日提醒与 Webhook</h2>
+    <span class="badge {% if form.webhook_url or env_webhook_url %}badge-doing{% else %}badge-muted{% endif %}">
+      {% if form.webhook_url or env_webhook_url %}已配置推送{% else %}仅站内提醒{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="form">
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="remind_time">每日扫描时刻</label>
+          <input class="input" id="remind_time" name="remind_time" type="time"
+                 value="{{ form.remind_time }}" required>
+          <div class="help">按 {{ system.tz_name }} 时区每天定时扫描，保存后立即热更新，无需重启。</div>
+        </div>
+        <div class="field">
+          <label class="label" for="remind_soon_days">临期阈值（天）</label>
+          <input class="input" id="remind_soon_days" name="remind_soon_days" type="number"
+                 min="0" max="60" step="1" value="{{ form.remind_soon_days }}" required>
+          <div class="help">DDL 落在「今天 +1 ~ 今天 +N 天」的工作计入「临期」。</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="webhook_format">Webhook 格式</label>
+          <select class="select" id="webhook_format" name="webhook_format">
+            {% for key, label in format_options %}
+            <option value="{{ key }}" {% if form.webhook_format == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <div class="help">六种格式与 SPEC 第 7 节第 5 条一致。</div>
+        </div>
+        <div class="field">
+          <label class="label" for="telegram_chat_id">Telegram chat_id（仅 telegram 用）</label>
+          <input class="input" id="telegram_chat_id" name="telegram_chat_id" type="text"
+                 value="{{ form.telegram_chat_id }}" placeholder="例如 123456789 或 @channelname"
+                 autocomplete="off">
+          <div class="help">Bot token 写在 Webhook 地址里：https://api.telegram.org/bot&lt;token&gt;/sendMessage</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="webhook_url">Webhook 地址</label>
+        <input class="input mono" id="webhook_url" name="webhook_url" type="text"
+               value="{{ form.webhook_url }}" spellcheck="false"
+               placeholder="留空 = 只做站内提醒，不对外推送">
+        <div class="help">
+          留空时扫描结果仍写入 reminders_log，页面不会报错。
+          {% if env_webhook_url and not form.webhook_url %}当前环境变量 WEBHOOK_URL 已配置，留空将沿用环境变量。{% endif %}
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" name="obsidian_enabled" value="1"
+                 {% if form.obsidian_enabled == '1' %}checked{% endif %}>
+          启用 Obsidian 只读检索（在上方「知识库」卡片选定目录后生效）
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" data-loading-text="保存中…">保存设置</button>
+        <span class="help">保存后在下方「最近一次扫描」里可以看到当前生效的阈值。</span>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">推送与扫描</h2>
+    <div class="card-actions">
+      <form method="post" action="/settings/test-push" class="inline-form"
+            hx-post="/settings/test-push" hx-target="#test-push-result" hx-swap="innerHTML">
+        <button class="btn btn-sm" type="submit">发送测试推送</button>
+      </form>
+      <form method="post" action="/settings/scan-now" class="inline-form"
+            hx-post="/settings/scan-now" hx-target="#scan-result" hx-swap="innerHTML">
+        <button class="btn btn-sm" type="submit">立即扫描一次</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="help mb-sm">
+      两个按钮都使用「已保存」的配置：测试推送发一条固定测试消息，立即扫描执行一次完整扫描
+      {% if form.webhook_url or env_webhook_url %}（有 Webhook 时同时推送）{% else %}（当前未配置 Webhook，只写站内记录）{% endif %}。
+      {% if auth_mode == 'multi' %}多用户模式下扫描按用户分组，日报里每个有待提醒项的用户一个独立小节。{% endif %}
+    </div>
+    <div id="test-push-result">
+      {% if last_test %}
+        {% with result = last_test %}{% include "partials/settings_test_result.html" %}{% endwith %}
+      {% else %}
+      <div class="empty empty-compact">
+        <div class="empty-title">还没有测试推送记录</div>
+        <div class="empty-hint">点击右上「发送测试推送」验证 Webhook 配置。</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">最近一次扫描</h2>
+    <div class="card-actions">
+      {% if scheduler.running %}
+      <span class="badge badge-done">调度器运行中</span>
+      {% else %}
+      <span class="badge badge-muted">调度器未运行</span>
+      {% endif %}
+      {% if scheduler.next_run %}<span class="small muted">下次 {{ scheduler.next_run }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="card-body" id="scan-result">
+    {% include "partials/settings_scan_summary.html" %}
+  </div>
+</div>
+
+{% else %}
+
+<div class="card" id="settings-shared-readonly">
+  <div class="card-head">
+    <h2 class="card-title">共享设置由管理员维护</h2>
+    <span class="badge badge-muted">只读</span>
+  </div>
+  <div class="card-body">
+    <div class="help">以下配置对全站生效，属于共享资源，普通成员只能查看，写操作一律由管理员执行。</div>
+    <ul class="plain-list mt-sm">
+      <li>大模型配置与 API 密钥 —— 由管理员维护</li>
+      <li>知识库（Obsidian）目录与索引 —— 由管理员维护</li>
+      <li>Webhook 地址与每日提醒时刻 —— 由管理员维护</li>
+    </ul>
+    <div class="help mt-sm">需要调整请联系管理员；你自己的每日提醒会由系统按用户分组汇总后统一推送。</div>
+  </div>
+</div>
+
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">系统信息（只读）</h2>
+    <span class="badge badge-muted">不可在此修改</span>
+  </div>
+  <div class="card-body">
+    <dl class="settings-kv">
+      <dt>DATA_DIR</dt><dd>{{ system.data_dir }}</dd>
+      <dt>数据库文件</dt><dd>{{ system.db_path }}{% if not system.db_exists %} <span class="badge badge-p3">不存在</span>{% endif %}</dd>
+      <dt>数据库大小</dt><dd>{{ system.db_size }}（含 WAL/SHM）</dd>
+      <dt>鉴权模式</dt>
+      <dd>
+        {% if auth_mode == 'multi' %}<span class="badge badge-done">多用户</span>
+        {% elif system.auth_enabled %}<span class="badge badge-doing">口令鉴权</span>
+        {% else %}<span class="badge badge-muted">未启用</span>{% endif %}
+      </dd>
+      <dt>LLM 模式</dt>
+      <dd>{% if system.llm_mock %}<span class="badge badge-mock">MOCK</span>{% else %}<span class="badge badge-live">LIVE</span>{% endif %}
+        {{ system.llm_model }}</dd>
+      <dt>LLM Base URL</dt><dd>{{ system.llm_base_url }}</dd>
+      {% if system.llm_note %}<dt>LLM 探测备注</dt><dd>{{ system.llm_note }}</dd>{% endif %}
+      <dt>VAULT_DIR</dt>
+      <dd>{{ system.vault_dir }}
+        {% if system.vault_available %}<span class="badge badge-done">已挂载</span>{% else %}<span class="badge badge-muted">未挂载</span>{% endif %}
+      </dd>
+      {% if system.vault_note %}<dt>知识库探测备注</dt><dd>{{ system.vault_note }}</dd>{% endif %}
+      <dt>索引开关</dt><dd>{{ '已启用' if form.obsidian_enabled == '1' else '未启用' }}</dd>
+      <dt>业务时区</dt><dd>{{ system.tz_name }}</dd>
+      <dt>当前时间</dt><dd>{{ system.now }}</dd>
+      <dt>调度器</dt>
+      <dd>{{ '运行中' if scheduler.running else '未运行' }} · 每天 {{ scheduler.remind_time }} · 下次 {{ scheduler.next_run or '未排期' }}</dd>
+    </dl>
+
+    <div class="section-title mt">表行数</div>
+    <div class="table-wrap mt-sm">
+      <table class="table table-compact">
+        <thead><tr><th>表</th><th class="num">行数</th></tr></thead>
+        <tbody>
+          {% for name, count in system.counts.items() %}
+          <tr>
+            <td class="mono">{{ name }}</td>
+            <td class="num">{% if count is none %}<span class="faint">读取失败</span>{% else %}{{ count }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

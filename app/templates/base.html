@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}工作台{% endblock %} · 工作台</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/auth.css">
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+{% block head_extra %}{% endblock %}
+</head>
+<body>
+{% set path = request.url.path if request else '' %}
+{% set me = request.state.user if request else None %}
+{% set mode = request.state.auth_mode if request else '' %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">工作台</a>
+    <nav class="nav" aria-label="主导航">
+      <a href="/" class="{{ 'active' if path == '/' else '' }}">仪表盘</a>
+      <a href="/week" class="{{ 'active' if path.startswith('/week') else '' }}">周视图</a>
+      <a href="/routines" class="{{ 'active' if path.startswith('/routines') else '' }}">例行工作</a>
+      <a href="/projects" class="{{ 'active' if path.startswith('/projects') else '' }}">项目</a>
+      <a href="/archive" class="{{ 'active' if path.startswith('/archive') else '' }}">归档</a>
+      <a href="/reports" class="{{ 'active' if path.startswith('/reports') else '' }}">报告</a>
+      <a href="/settings" class="{{ 'active' if path.startswith('/settings') else '' }}">设置</a>
+    </nav>
+    <div class="topbar-right">
+      {% block topbar_actions %}{% endblock %}
+      {% include "partials/auth_user_menu.html" %}
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="statusbar no-print">
+  <div class="statusbar-inner">
+    <span class="status-item">今天 {{ today_cn }}</span>
+    <span class="status-item">
+      {% if llm_mock %}
+      <span class="badge badge-mock">LLM MOCK</span>
+      {% else %}
+      <span class="badge badge-live">LLM LIVE</span>
+      {% endif %}
+    </span>
+    <span class="status-item">
+      {% if me %}多用户模式{% elif auth_enabled %}口令鉴权已启用{% else %}未启用鉴权{% endif %}
+    </span>
+    <span class="status-item">
+      {% if obsidian_available %}Obsidian 就绪{% else %}Obsidian 未接入{% endif %}
+    </span>
+    <span class="status-spacer"></span>
+    <span class="status-item muted">工作台 v0.1.0</span>
+  </div>
+</footer>
+</body>
+</html>

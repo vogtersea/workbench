@@ -1,0 +1,70 @@
+{# 工作表单字段。上下文：values / projects / field_errors / status_options / priority_options。 #}
+<div class="field">
+  <label class="label" for="f-title">标题 <span class="faint">必填</span></label>
+  <input class="input" id="f-title" name="title" value="{{ values.title }}" maxlength="200" required
+         placeholder="这条工作要做什么？">
+  {% if field_errors.get('title') %}<div class="error-text">{{ field_errors.get('title') }}</div>{% endif %}
+</div>
+
+<div class="form-row">
+  <div class="field">
+    <label class="label" for="f-status">状态</label>
+    <select class="select" id="f-status" name="status">
+      {% for value, label in status_options %}
+      <option value="{{ value }}"{% if values.status == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if field_errors.get('status') %}<div class="error-text">{{ field_errors.get('status') }}</div>{% endif %}
+  </div>
+  <div class="field">
+    <label class="label" for="f-priority">优先级</label>
+    <select class="select" id="f-priority" name="priority">
+      {% for value, label in priority_options %}
+      <option value="{{ value }}"{% if values.priority == value|string %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if field_errors.get('priority') %}<div class="error-text">{{ field_errors.get('priority') }}</div>{% endif %}
+  </div>
+  <div class="field">
+    <label class="label" for="f-project">项目</label>
+    <select class="select" id="f-project" name="project_id">
+      <option value="">（不归类）</option>
+      {% for project in projects %}
+      <option value="{{ project.id }}"{% if values.project_id == project.id|string %} selected{% endif %}>{{ project.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<div class="form-row">
+  <div class="field">
+    <label class="label" for="f-due-date">截止日期</label>
+    <input class="input" id="f-due-date" name="due_date" type="date" value="{{ values.due_date }}">
+    {% if field_errors.get('due_date') %}<div class="error-text">{{ field_errors.get('due_date') }}</div>{% endif %}
+  </div>
+  <div class="field">
+    <label class="label" for="f-due-time">截止时间</label>
+    <input class="input" id="f-due-time" name="due_time" type="time" value="{{ values.due_time }}">
+    {% if field_errors.get('due_time') %}<div class="error-text">{{ field_errors.get('due_time') }}</div>{% else %}<div class="help">填了时间必须同时有日期</div>{% endif %}
+  </div>
+  <div class="field">
+    <label class="label" for="f-week-start">所属周（周一）</label>
+    <input class="input" id="f-week-start" name="week_start" type="date" value="{{ values.week_start }}">
+    {% if field_errors.get('week_start') %}<div class="error-text">{{ field_errors.get('week_start') }}</div>{% else %}<div class="help">留空则取截止日期所在周的周一，再退化为本周</div>{% endif %}
+  </div>
+</div>
+
+<div class="field">
+  <label class="label" for="f-tags">标签</label>
+  <input class="input" id="f-tags" name="tags" value="{{ values.tags }}" placeholder="逗号分隔，不含空格，例如：周报,复盘">
+</div>
+
+<div class="field">
+  <label class="label" for="f-detail">详情</label>
+  <textarea class="textarea" id="f-detail" name="detail" rows="4" placeholder="背景、范围、参考链接……支持 Markdown">{{ values.detail }}</textarea>
+</div>
+
+<div class="field">
+  <label class="label" for="f-done-criteria">完成条件</label>
+  <textarea class="textarea" id="f-done-criteria" name="done_criteria" rows="3" placeholder="满足什么条件可以销号？">{{ values.done_criteria }}</textarea>
+</div>

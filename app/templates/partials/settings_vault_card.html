@@ -1,0 +1,50 @@
+{# 知识库卡片：挂载根 / 当前选中 / 目录浏览 / 笔记数 / 上次索引 / 重建索引（SPEC 14.4） #}
+<div class="card" id="vault-card">
+  <div class="card-head">
+    <h2 class="card-title">知识库（Obsidian）</h2>
+    <div class="card-actions">
+      {% if vault.available %}<span class="badge badge-done">可浏览</span>
+      {% else %}<span class="badge badge-muted">不可用</span>{% endif %}
+      <form method="post" action="/settings/reindex" class="inline-form"
+            hx-post="/settings/reindex" hx-target="#reindex-result" hx-swap="innerHTML">
+        <button class="btn btn-sm" type="submit" {% if not vault.available %}disabled{% endif %}>重建索引</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    {% if not vault.available %}
+    <div class="alert alert-warn">
+      <div class="alert-title">该项暂不可用</div>
+      <div class="small">{{ vault.reason }}</div>
+    </div>
+    {% endif %}
+    {% if notice %}
+    <div class="alert alert-{% if notice_kind == 'success' %}success{% elif notice_kind == 'danger' %}danger{% elif notice_kind == 'warn' %}warn{% else %}info{% endif %}">{{ notice }}</div>
+    {% endif %}
+
+    <dl class="settings-kv">
+      <dt>挂载根路径</dt>
+      <dd>{{ vault.root or '未配置' }} <span class="faint small">（只读）</span></dd>
+      <dt>当前选中路径</dt>
+      <dd>
+        {% if vault.path %}
+          <span class="crumbs">{% for crumb in vault.path_crumbs %}{% if not loop.first %}<span class="crumb-sep">/</span>{% endif %}<span class="crumb">{{ crumb.name }}</span>{% endfor %}</span>
+        {% else %}
+          <span class="badge badge-muted">未选择</span>
+        {% endif %}
+      </dd>
+      <dt>当前库笔记数</dt>
+      <dd>{{ vault.notes }} 篇已索引</dd>
+      <dt>上次索引时间</dt>
+      <dd>{{ vault.indexed_at or vault.last_index or '尚未索引' }}</dd>
+    </dl>
+
+    {% include "partials/settings_vault_browser.html" %}
+
+    <div class="mt-sm" id="reindex-result">
+      {% if last_reindex %}
+        {% with outcome = last_reindex %}{% include "partials/settings_reindex_result.html" %}{% endwith %}
+      {% endif %}
+    </div>
+  </div>
+</div>

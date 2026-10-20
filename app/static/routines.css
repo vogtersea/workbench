@@ -1,0 +1,20 @@
+/* 例行域补充样式：只补 app.css / tasks.css 未覆盖的类，不改动它们。 */
+
+/* 「例行 · 每周」徽标与「逾期」状态徽标（复用 app.css 的 .badge 基类） */
+.badge-routine { background: var(--accent-soft); color: var(--accent-strong); border-color: #dbe1fb; }
+.badge-overdue { background: var(--danger-soft); color: var(--danger); border-color: #f6d6d4; }
+
+/* 空态里的三种常见例行示例 */
+.routine-examples {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px;
+}
+.routine-example {
+  font-size: 12px; padding: 4px 9px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+}
+
+/* 模板详情页的操作按钮区 */
+.routine-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* 历史表里本期那一行 */
+.table tbody tr.is-current td { background: var(--accent-soft); }

@@ -1,0 +1,28 @@
+{# 「本期例行任务」一行；也是完成 / 跳过的 htmx 片段。上下文：row、as_q。 #}
+<div class="task-row routine-instance" id="routine-instance-{{ row.id }}">
+  <div class="task-main">
+    <div class="task-title"><a href="{{ row.task_url }}">{{ row.title }}</a></div>
+    <div class="task-meta">
+      <span class="badge badge-routine">{{ row.routine_badge }}</span>
+      <span class="badge {{ row.state_class }}">{{ row.state }}</span>
+      <span class="{{ row.due_class }}">{{ row.due_label }}</span>
+      <span class="muted small nowrap">本期截止 {{ row.due_cn }}{% if row.due_time %} {{ row.due_time }}{% endif %}</span>
+      {% if row.period_display %}<span class="muted small nowrap">{{ row.period_display }}</span>{% endif %}
+      {% if row.project_name %}<span class="tag">{{ row.project_name }}</span>{% endif %}
+      {% for tag in row.tag_list %}<span class="tag">{{ tag }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="task-side">
+    {% if row.status in ('todo', 'doing') %}
+    <form method="post" action="{{ row.done_url }}" class="inline-form"
+          hx-post="{{ row.done_url }}" hx-target="#routine-instance-{{ row.id }}" hx-swap="outerHTML">
+      <button class="btn btn-sm" type="submit">完成</button>
+    </form>
+    <form method="post" action="{{ row.skip_url }}" class="inline-form"
+          hx-post="{{ row.skip_url }}" hx-target="#routine-instance-{{ row.id }}" hx-swap="outerHTML">
+      <button class="btn btn-sm btn-ghost" type="submit">跳过本期</button>
+    </form>
+    {% endif %}
+    <a class="btn btn-sm btn-ghost" href="{{ row.template_url }}">模板</a>
+  </div>
+</div>

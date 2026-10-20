@@ -1,0 +1,21 @@
+{% if error %}
+<div class="alert alert-danger">
+  <div class="alert-title">测试失败</div>
+  <div class="small">该项暂不可用：{{ error }}</div>
+</div>
+{% elif result %}
+<div class="alert alert-{% if result.ok %}success{% else %}danger{% endif %}">
+  <div class="alert-title">{% if result.ok %}连接成功{% else %}连接失败{% endif %}</div>
+  <div class="small">
+    模式 {{ result.mode or '-' }} · 厂商 {{ result.provider or '-' }} · 模型 {{ result.model or '-' }}
+    {% if result.latency_ms is not none and result.latency_ms != '' %} · 延迟 {{ result.latency_ms }} ms{% endif %}
+  </div>
+  {% if result.base_url %}<div class="small mono">{{ result.base_url }}</div>{% endif %}
+  {% if result.error %}<div class="small error-text">原因：{{ result.error }}</div>{% endif %}
+  {% if result.reply_snippet %}
+  <div class="settings-msg">回复片段：{{ result.reply_snippet }}</div>
+  {% endif %}
+</div>
+{% else %}
+<div class="alert alert-warn">未取得测试结果，请检查配置后重试。</div>
+{% endif %}

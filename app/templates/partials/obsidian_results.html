@@ -1,0 +1,31 @@
+<div class="card">
+  <div class="card-head">
+    <h2 class="card-title">检索结果</h2>
+    <span class="small muted">{{ hits|length }} 条 · 关键词「{{ q }}」</span>
+  </div>
+  {% if hits %}
+  <div class="card-body tight">
+    <ul class="obs-hits">
+      {% for hit in hits %}
+      <li class="obs-hit">
+        <div class="obs-hit-head">
+          <span class="obs-hit-title">{{ hit.title }}</span>
+          <span class="badge badge-muted">第 {{ hit.line }} 行</span>
+          <span class="obs-hit-score small faint">score {{ hit.score }}</span>
+        </div>
+        <div class="obs-hit-path mono">{{ hit.path }}</div>
+        <div class="obs-hit-snippet">{{ hit.snippet_html }}</div>
+        {% if hit.tags %}
+        <div class="obs-hit-tags">{% for tag in hit.tags %}<span class="tag">{{ tag }}</span>{% endfor %}</div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-title">没有匹配「{{ q }}」的笔记</div>
+    <div class="empty-hint">换个关键词试试；vault 里新增或修改过的笔记需要先「重建索引」。</div>
+  </div>
+  {% endif %}
+</div>

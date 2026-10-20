@@ -1,0 +1,246 @@
+{# 大模型卡片：列表 / 新建编辑 / 切换生效 / 密钥 / 测试连接（SPEC 14.4） #}
+{% set sel = llm.selected %}
+<div class="card" id="llm-card">
+  <div class="card-head">
+    <h2 class="card-title">大模型</h2>
+    <div class="card-actions">
+      {% if llm.available %}
+        {% if llm.mode == 'mock' %}<span class="badge badge-mock">MOCK 兜底</span>
+        {% elif llm.mode == 'live' %}<span class="badge badge-live">LIVE</span>{% endif %}
+        <span class="small muted">保存即生效，无需改 .env / 重启</span>
+      {% else %}
+        <span class="badge badge-muted">不可用</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    {% if not llm.available %}
+    <div class="alert alert-warn">
+      <div class="alert-title">该项暂不可用</div>
+      <div class="small">{{ llm.reason }}</div>
+      <div class="help">下方表单保留展示，功能恢复后即可直接使用。</div>
+    </div>
+    {% endif %}
+    {% if llm.notice %}
+    <div class="alert alert-{% if llm.notice_kind == 'success' %}success{% elif llm.notice_kind == 'danger' %}danger{% elif llm.notice_kind == 'warn' %}warn{% else %}info{% endif %}">
+      {{ llm.notice }}
+    </div>
+    {% endif %}
+
+    <div class="section-title">生效配置</div>
+    <form method="post" action="/settings/llm-active" class="row"
+          hx-post="/settings/llm-active" hx-target="#llm-card" hx-swap="outerHTML">
+      <select class="select" name="id" {% if not llm.available %}disabled{% endif %}>
+        {% for p in llm.profiles %}
+        <option value="{{ p.id }}" {% if p.id == llm.active_id %}selected{% endif %}>{{ p.name }} · {{ p.provider }} · {{ p.model }}</option>
+        {% endfor %}
+        {% if not llm.profiles %}
+        <option value="">（暂无配置，按下方 .env 兜底参数运行）</option>
+        {% endif %}
+      </select>
+      <button class="btn btn-sm btn-primary" type="submit" {% if not llm.available or not llm.profiles %}disabled{% endif %}>切换生效</button>
+    </form>
+    <div class="help mt-sm">
+      {% if llm.active %}
+      当前生效：<span class="mono">{{ llm.active.name }}</span> · {{ llm.active.provider }} ·
+      <span class="mono">{{ llm.active.model }}</span> ·
+      {% if llm.active.has_key %}<span class="badge badge-done">密钥已保存</span>
+      {% elif llm.active.requires_key %}<span class="badge badge-muted">未设置密钥（报告走 MOCK）</span>
+      {% else %}<span class="badge badge-doing">本地模型，无需密钥</span>{% endif %}
+      {% else %}
+      还没有配置文件，按 .env 兜底：<span class="mono">{{ llm.env_base_url }}</span> · <span class="mono">{{ llm.env_model }}</span>
+      （{% if llm.env_has_key %}已填 LLM_API_KEY{% else %}未填 LLM_API_KEY = MOCK{% endif %}）。
+      {% endif %}
+    </div>
+
+    <div class="section-title mt">配置列表</div>
+    {% if llm.profiles %}
+    <div class="table-wrap">
+      <table class="table table-compact">
+        <thead>
+          <tr><th>名称</th><th>厂商</th><th>model</th><th>密钥</th><th>状态</th><th class="text-right">操作</th></tr>
+        </thead>
+        <tbody>
+          {% for p in llm.profiles %}
+          <tr>
+            <td>
+              <div><strong>{{ p.name }}</strong></div>
+              <div class="small faint mono">{{ p.id }}</div>
+            </td>
+            <td>{{ p.provider }}</td>
+            <td class="mono small">{{ p.model }}</td>
+            <td>
+              {% if p.has_key %}<span class="badge badge-done">已保存</span>
+              {% elif p.requires_key %}<span class="badge badge-muted">未设置</span>
+              {% else %}<span class="badge badge-doing">无需</span>{% endif %}
+            </td>
+            <td>
+              {% if p.id == llm.active_id %}<span class="badge badge-live">生效中</span>
+              {% else %}<span class="faint small">—</span>{% endif %}
+            </td>
+            <td class="text-right">
+              <div class="row-actions">
+                <a class="btn btn-sm btn-ghost" href="/settings?edit={{ p.id }}">编辑</a>
+                <form method="post" action="/settings/llm-delete" class="inline-form"
+                      hx-post="/settings/llm-delete" hx-target="#llm-card" hx-swap="outerHTML"
+                      onsubmit="return confirm('确定删除该配置？其密钥也会一并删除。');">
+                  <input type="hidden" name="id" value="{{ p.id }}">
+                  <button class="btn btn-sm btn-danger" type="submit">删除</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty empty-compact">
+      <div class="empty-title">还没有大模型配置</div>
+      <div class="empty-hint">用下面的表单新建一条即可在网页里完成配置；不配置则沿用 .env 的 LLM_* 参数。</div>
+    </div>
+    {% endif %}
+
+    <div class="section-title mt">
+      {% if sel %}编辑配置：{{ sel.name }}{% else %}新建配置{% endif %}
+    </div>
+    <form method="post" action="/settings/llm-profile" class="form" id="llm-profile-form">
+      <input type="hidden" name="profile_id" value="{{ sel.id if sel else '' }}">
+
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="llm-preset">预设</label>
+          <select class="select" id="llm-preset" name="preset" {% if not llm.available %}disabled{% endif %}>
+            <option value="">— 选择预设自动填充 —</option>
+            {% for option in llm.presets %}
+            <option value="{{ option.key }}"
+                    data-base-url="{{ option.base_url }}" data-model="{{ option.model }}"
+                    data-provider="{{ option.provider }}">{{ option.label }}</option>
+            {% endfor %}
+          </select>
+          <div class="help">选中预设会把厂商 / base_url / model 填进下面的输入框，仍可手工修改。</div>
+        </div>
+        <div class="field">
+          <label class="label" for="llm-name">配置名称</label>
+          <input class="input" id="llm-name" name="name" type="text"
+                 value="{{ sel.name if sel else '' }}" placeholder="例如 DeepSeek 官方" autocomplete="off"
+                 {% if not llm.available %}disabled{% endif %}>
+          <div class="help">留空则用 model 名自动命名。</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="llm-provider">厂商 / provider</label>
+          <input class="input mono" id="llm-provider" name="provider" type="text"
+                 value="{{ sel.provider if sel else '' }}" placeholder="deepseek / openai / kimi / ollama / custom"
+                 autocomplete="off" {% if not llm.available %}disabled{% endif %}>
+        </div>
+        <div class="field">
+          <label class="label" for="llm-model">model</label>
+          <input class="input mono" id="llm-model" name="model" type="text"
+                 value="{{ sel.model if sel else '' }}" placeholder="deepseek-chat" autocomplete="off"
+                 {% if not llm.available %}disabled{% endif %}>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="llm-base-url">base_url（OpenAI 兼容）</label>
+        <input class="input mono" id="llm-base-url" name="base_url" type="text" spellcheck="false"
+               value="{{ sel.base_url if sel else '' }}" placeholder="https://api.deepseek.com/v1"
+               autocomplete="off" {% if not llm.available %}disabled{% endif %}>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label class="label" for="llm-temperature">temperature</label>
+          <input class="input" id="llm-temperature" name="temperature" type="number" step="0.1" min="0" max="2"
+                 value="{{ sel.temperature if sel and sel.temperature != '' else '0.3' }}"
+                 {% if not llm.available %}disabled{% endif %}>
+        </div>
+        <div class="field">
+          <label class="label" for="llm-max-tokens">max_tokens</label>
+          <input class="input" id="llm-max-tokens" name="max_tokens" type="number" step="1" min="1" max="200000"
+                 value="{{ sel.max_tokens if sel and sel.max_tokens != '' else '2000' }}"
+                 {% if not llm.available %}disabled{% endif %}>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="llm-api-key">API Key</label>
+        <input class="input mono" id="llm-api-key" name="api_key" type="password" value=""
+               autocomplete="new-password" spellcheck="false"
+               placeholder="{% if sel and sel.has_key %}已保存，留空则不修改{% else %}未设置，粘贴密钥后保存（永不回显）{% endif %}"
+               {% if not llm.available %}disabled{% endif %}>
+        <div class="help">
+          密钥写入 DATA_DIR/secrets.json（不进数据库、不进 git）。
+          {% if sel %}当前状态：{% if sel.has_key %}<span class="badge badge-done">已保存</span>{% else %}<span class="badge badge-muted">未设置</span>{% endif %}{% endif %}
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" name="requires_key" value="1"
+                 {% if not sel or sel.requires_key %}checked{% endif %}
+                 {% if not llm.available %}disabled{% endif %}>
+          需要 API Key（本地模型如 Ollama 可取消勾选，无密钥也算 LIVE）
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" name="action" value="save"
+                {% if not llm.available %}disabled{% endif %}>保存</button>
+        <button class="btn" type="submit" name="action" value="new"
+                {% if not llm.available %}disabled{% endif %}>另存为新配置</button>
+        <button class="btn btn-ghost" type="submit" formaction="/settings/llm-test"
+                hx-post="/settings/llm-test" hx-target="#llm-test-result" hx-swap="innerHTML"
+                {% if not llm.available %}disabled{% endif %}>测试连接</button>
+        {% if sel %}<a class="btn btn-ghost" href="/settings">取消编辑</a>{% endif %}
+      </div>
+    </form>
+
+    {% if sel %}
+    <div class="section-title mt">密钥（{{ sel.name }}）</div>
+    <form method="post" action="/settings/llm-key" class="row"
+          hx-post="/settings/llm-key" hx-target="#llm-card" hx-swap="outerHTML">
+      <input type="hidden" name="id" value="{{ sel.id }}">
+      <input class="input mono" name="api_key" type="password" value="" autocomplete="new-password"
+             placeholder="{% if sel.has_key %}已保存，留空提交 = 清除密钥{% else %}未设置，粘贴密钥后保存{% endif %}"
+             {% if not llm.available %}disabled{% endif %}>
+      <button class="btn btn-sm btn-primary" type="submit" name="action" value="save"
+              {% if not llm.available %}disabled{% endif %}>保存密钥</button>
+      <button class="btn btn-sm btn-danger" type="submit" name="action" value="clear"
+              {% if not llm.available %}disabled{% endif %}>清除密钥</button>
+    </form>
+    {% endif %}
+
+    <div class="section-title mt">测试连接</div>
+    <div id="llm-test-result">
+      <div class="help">点上方「测试连接」用表单里的当前参数（未保存也生效）发一次最小请求，返回延迟与回复片段。</div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="llm-presets-data">{{ llm.presets | tojson }}</script>
+<script>
+(function () {
+  var data = document.getElementById('llm-presets-data');
+  var select = document.getElementById('llm-preset');
+  if (!data || !select) return;
+  var presets = {};
+  try {
+    (JSON.parse(data.textContent) || []).forEach(function (item) { presets[item.key] = item; });
+  } catch (err) { return; }
+  select.addEventListener('change', function () {
+    var preset = presets[select.value];
+    if (!preset) return;
+    var targets = [['provider', 'llm-provider'], ['base_url', 'llm-base-url'], ['model', 'llm-model']];
+    targets.forEach(function (pair) {
+      var value = preset[pair[0]];
+      var el = document.getElementById(pair[1]);
+      if (!el || !value) return;
+      el.value = value;
+    });
+  });
+})();
+</script>

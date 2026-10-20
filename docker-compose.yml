@@ -1,0 +1,45 @@
+# 工作台项目 · NAS 部署编排（SPEC.md 第 8 节）
+# 使用前：cp .env.example .env 并按需填写（.env 已在 .gitignore，绝不提交）
+# 启动：docker compose up -d      查看：docker compose ps / docker compose logs -f
+services:
+  workbench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: workbench:latest
+    container_name: workbench
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Shanghai
+      DATA_DIR: /data
+      # VAULT_ROOT：只读挂载根，前端在这个根目录下逐级浏览、选择具体知识库
+      VAULT_ROOT: /hostvaults
+      VAULT_DIR: /hostvaults
+      PORT: "8080"
+    ports:
+      # 宿主端口由 .env 的 APP_PORT 决定（默认 8080）。建议改成非标准端口降低被扫描概率；
+      # 容器内端口保持 8080 不动。
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      # SQLite 数据目录：读写；放 NAS 固定路径，备份脚本也从这里取库文件
+      - ./data:/data
+      # Obsidian 知识库根目录：只读挂载。把你的库同步/复制到宿主机 workbench/vaults/ 下的任意子目录，
+      # 然后在网页「设置 → 知识库」里浏览并选中即可，无需再改这个文件。
+      - ./vaults:/hostvaults:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
