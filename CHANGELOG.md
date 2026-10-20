@@ -5,7 +5,36 @@
 
 ## [未发布]
 
-P1（进行中）：连接复用、调度日锁、登录节流落库、大文件拆分。
+（下一阶段：P2 的 W-10 显式返回类型、W-11 报告二次编辑、W-12 备份恢复演练。）
+
+## [v0.2.0] — 2026-10-21
+
+P1：运行可靠性与工程结构。
+
+**改了什么**
+
+- W-05 连接复用：数据库连接改为线程本地复用，不再每次查询 open/close。
+  报告页单次渲染的连接创建次数由 32 降到 2（降 94%），WAL + busy_timeout 不变。
+- W-06 调度日锁：用 settings.reminder_lock 实现抢占式日锁，多个 worker 同时只允许一路扫描推送。
+  实测 3 个独立进程同时执行，只有 1 路发送。抢锁异常时 fail-closed（宁可不推，也不重复推）。
+- W-07 登录节流落库：失败次数从进程内 dict 改为 login_attempts 表（5 次 / 300 秒窗口），
+  重启不清零、多 worker 一致；每次记录顺带清理过期行，随机用户名不会撑大内存。
+- W-08 大文件拆分：settings 域 1220 行拆成 8 个模块（最大 357）、报告域 1056 行拆成 4 个（最大 310）、
+  Obsidian 域 937 行拆成 3 个（最大 376）。旧的 pages_settings.py 与 reports.py 转发层已删除，
+  obsidian.py 保留为稳定门面。
+- W-09 提交与版本纪律：CHANGELOG、语义化 tag、SPEC 第 17 章运行约束、按主题拆分提交。
+
+**影响哪些接口**
+
+- 对外 HTTP 接口零变化（拆分前后 12 条 /settings 路由、11 条 API、20 条写路径逐条比对一致）
+- 函数签名零变化（178 条顶层语句 AST 逐条比对，仅 1 处延迟 import 以解循环依赖）
+- 新增内部模块路径：app/services/report/*、app/services/obsidian_{vault,index,search}.py、app/web/settings/*
+- 若你有外部脚本 import app.web.pages_settings 或 app.services.reports，需改为新路径
+
+**是否需要迁移**
+
+- 无需手工迁移。init_db() 会自动建 login_attempts 表并播种 reminder_lock；
+  既有库启动即补齐，不改动任何既有数据。
 
 ## [v0.1.0] — 2026-10-20
 
