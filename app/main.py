@@ -30,9 +30,9 @@ from app.web import (
     pages_obsidian,
     pages_reports,
     pages_routines,
-    pages_settings,
     pages_tasks,
 )
+from app.web.settings import router as settings_router
 
 logger = logging.getLogger("app.main")
 
@@ -117,6 +117,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             pass
         except Exception:
             logger.exception("调度器停止失败")
+        # W-05/SPEC 17.2：进程退出前释放本线程缓存的连接（close_threadlocal 幂等）。
+        db.close_threadlocal()
 
 
 def create_app() -> FastAPI:
@@ -166,7 +168,7 @@ def create_app() -> FastAPI:
     app.include_router(pages_tasks.pages)
     app.include_router(pages_routines.pages)
     app.include_router(pages_reports.pages)
-    app.include_router(pages_settings.pages)
+    app.include_router(settings_router)
     app.include_router(pages_obsidian.pages)
 
     # 阶段一占位：pages_tasks 提供真实仪表盘后，先注册的同路径路由会自动遮蔽本占位，
