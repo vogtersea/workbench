@@ -2,6 +2,12 @@
 
 所有其它模块只通过 connect / cursor / query / one / execute 访问数据库；
 函数签名是跨模块契约，不得更改。
+
+连接生命周期（W-05）：连接按线程缓存，cursor() 只负责事务边界（提交 / 回滚），
+不再每语句开关连接。FastAPI 同步端点跑在 anyio 线程池里，线程会被复用，所以进程内
+最多存在「线程池大小」条连接（默认上限 40）；线程退出时 threading.local 的槽位随线程
+销毁，连接对象失去引用后由 GC 关闭。需要确定性释放时调用 close_threadlocal()
+（测试 teardown / 应用关闭钩子）。
 """
 
 from __future__ import annotations
@@ -9,6 +15,7 @@ from __future__ import annotations
 import logging
 import re
 import sqlite3
+import threading
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -122,6 +129,17 @@ SCHEMA: tuple[str, ...] = (
     """,
     "CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_sessions_exp ON sessions(expires_at)",
+    # ---- 登录节流（W-07）：落在库里，跨重启仍生效，内存不留状态 ----
+    """
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      source TEXT NOT NULL,
+      at TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_login_attempts "
+    "ON login_attempts(username, source, at)",
     # ---- 例行工作（SPEC.md 16.2）----
     """
     CREATE TABLE IF NOT EXISTS routines (
@@ -170,21 +188,49 @@ NOTES_FTS_DDL = (
 )
 FTS_TOKENIZERS = ("trigram", "unicode61")
 
+# 抢占式日锁的默认值（W-06）：value 形如 2026-10-20。抢锁逻辑属于 services/scheduler.py
+# （UPDATE settings SET value = ? WHERE key = 'reminder_lock' AND value < ?），db 只负责
+# 让这一行存在——缺行时那条 UPDATE 影响行数恒为 0，谁都抢不到锁。
+DEFAULT_SETTINGS_EXTRA: tuple[tuple[str, str], ...] = (("reminder_lock", ""),)
+
+_local = threading.local()
+
 
 def connect() -> sqlite3.Connection:
-    """新建连接：Row 工厂、WAL、foreign_keys=ON、busy_timeout=5000。"""
+    """返回本线程缓存的连接（W-05）：Row 工厂、WAL、foreign_keys=ON、busy_timeout=5000。
+
+    首次调用才真正 open，同线程后续调用直接复用。
+    不要改成全局单连接 + check_same_thread=False：并发写会退化成锁竞争。
+    """
+    conn = getattr(_local, "conn", None)
+    if conn is not None:
+        return conn
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(settings.db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=5000")
+    _local.conn = conn
     return conn
+
+
+def close_threadlocal() -> None:
+    """关闭本线程缓存的连接并清空槽位；本线程尚无连接时是空操作。
+
+    调用点：测试 teardown（用例间不串连接）、应用关闭钩子。线程池线程被回收时即便
+    不调用也不泄漏句柄：threading.local 的槽位随线程销毁，连接交给 GC 关闭。
+    """
+    conn = getattr(_local, "conn", None)
+    if conn is None:
+        return
+    _local.conn = None
+    conn.close()
 
 
 @contextmanager
 def cursor() -> Iterator[sqlite3.Connection]:
-    """事务上下文：正常提交，异常回滚，最终关闭连接。"""
+    """事务上下文：正常提交，异常回滚。连接按线程复用，不再关闭（W-05）。"""
     conn = connect()
     try:
         yield conn
@@ -192,8 +238,6 @@ def cursor() -> Iterator[sqlite3.Connection]:
     except BaseException:
         conn.rollback()
         raise
-    finally:
-        conn.close()
 
 
 def query(sql: str, params=()) -> list[sqlite3.Row]:
@@ -296,6 +340,10 @@ def init_db() -> None:
             "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             (tokenizer,),
         )
+        for key, value in DEFAULT_SETTINGS_EXTRA:
+            conn.execute(
+                "INSERT OR IGNORE INTO settings(key, value) VALUES(?, ?)", (key, value)
+            )
 
     from app.services import settings_store  # 延迟导入，避免 db <-> settings_store 循环
 
