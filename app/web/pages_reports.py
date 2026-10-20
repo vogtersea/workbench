@@ -3,6 +3,7 @@
     GET  /reports              报告中心：生成表单 + 历史列表
     POST /reports              触发生成（同步阻塞），成功 303 到 /reports/{id}
     GET  /reports/{id}         详情：Markdown 渲染 + 打印 + 复制原文
+    GET  /reports/{id}/export.docx  下载 Word（W-01），受 EXPORT_DOCX 开关控制
     POST /reports/{id}/delete  删除报告，303 回 /reports
 
 多用户（SPEC 15.1 / 15.7 / 15.9）：归属性由 auth.effective_owner_id(request) 决定；
@@ -12,17 +13,21 @@ None 表示开放/单口令模式（不传 owner_id，保持改造前行为）�
 from __future__ import annotations
 
 import logging
+from urllib.parse import quote
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app import auth, db, templating
-from app.services import llm, reports, tasks
+from app.config import settings
+from app.services import export, llm, reports, tasks
 from app.web.pages_tasks import as_query, owner_switch_context
 
 logger = logging.getLogger(__name__)
 
 pages = APIRouter()
+
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 _TRUE_VALUES = {"1", "true", "on", "yes", "checked"}
 
@@ -190,7 +195,30 @@ def report_detail(request: Request, rid: int):
         notes=reports.parse_context_notes(row["context_notes"]),
         kind_labels=reports.KIND_LABELS,
         as_q=as_query(request),
+        export_enabled=getattr(settings, "export_docx", True),
     )
+
+
+@pages.get("/reports/{rid}/export.docx")
+def report_export_docx(request: Request, rid: int):
+    """下载公文格式 Word。开关关闭时 404，越权/不存在一律 303 回列表。"""
+    if not getattr(settings, "export_docx", True):
+        raise HTTPException(status_code=404, detail="Word 导出已关闭")
+
+    row = reports.get_report(rid, owner_id=_owner(request))
+    if row is None:
+        return RedirectResponse("/reports", status_code=303)
+
+    data = export.build_docx(row["content_md"], row["scope_label"])
+    day = (row["created_at"] or "")[:10]
+    filename = "%s%s.docx" % (row["scope_label"], "-" + day if day else "")
+    headers = {
+        "Content-Disposition": (
+            "attachment; filename=report-%d.docx; filename*=UTF-8''%s"
+            % (rid, quote(filename))
+        )
+    }
+    return Response(content=data, media_type=DOCX_MIME, headers=headers)
 
 
 @pages.post("/reports/{rid}/delete")

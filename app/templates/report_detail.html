@@ -21,6 +21,9 @@
     <a class="btn btn-sm" href="/reports{{ as_q|default('', true) }}">返回列表</a>
     <button class="btn btn-sm" type="button" onclick="window.print()">打印</button>
     <button class="btn btn-sm" type="button" data-copy-target="#report-raw">复制原文</button>
+    {% if export_enabled %}
+    <a class="btn btn-sm btn-primary" href="/reports/{{ report.id }}/export.docx{{ as_q|default('', true) }}">下载 Word</a>
+    {% endif %}
     <form method="post" action="/reports/{{ report.id }}/delete{{ as_q|default('', true) }}" class="inline-form"
           data-confirm="确定删除这份报告吗？删除后不可恢复。">
       <button class="btn btn-sm btn-danger" type="submit">删除</button>
