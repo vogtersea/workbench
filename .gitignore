@@ -5,3 +5,12 @@ backup/
 __pycache__/
 *.pyc
 .playwright/
+
+# 测试与静态检查产物（W-03 引入 pytest / ruff）
+.pytest_cache/
+.ruff_cache/
+coverage.xml
+.coverage
+
+# 本地调试时生成的报告导出文件
+*.docx

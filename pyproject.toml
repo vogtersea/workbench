@@ -1,0 +1,26 @@
+# 本文件只放工具配置：项目是应用而非可安装包，不写打包元数据（SPEC 第 1 节约束）。
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# 保守规则集：CI 只拦「确定是错的」——语法错误（E9）与 pyflakes 全量（F：
+# 未定义名、未使用导入/变量）。风格类规则不启用，避免 CI 因历史写法抖动。
+select = ["E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# W-03 只建测试与 CI、不改业务代码；下面两处是这批规则暴露出的既有问题，
+# 按任务书约定就地豁免并登记，等业务侧后续清理：
+#   routes_routines.py  导入了 app.services.tasks 但当前未使用
+#   services/tasks.py   dashboard_buckets() 里 today 赋值后未使用
+"app/api/routes_routines.py" = ["F401"]
+"app/services/tasks.py" = ["F841"]
+
+[tool.pytest.ini_options]
+# 异步用例与 async 夹具免装饰器（tests/conftest.py 的 client 是异步生成器）。
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+# 让 pytest 控制台脚本也能 import app（CI 里不是 python -m pytest）。
+pythonpath = ["."]
