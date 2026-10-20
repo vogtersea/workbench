@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}例行工作{% endblock %}
-{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><link rel="stylesheet" href="/static/routines.css">{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css?v={{ asset_v() }}"><link rel="stylesheet" href="/static/routines.css?v={{ asset_v() }}">{% endblock %}
 {% block topbar_actions %}<a class="btn btn-primary btn-sm" href="#routine-new">新建例行工作</a>{% endblock %}
 {% block content %}
 <div class="page-head">

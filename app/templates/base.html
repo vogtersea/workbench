@@ -6,11 +6,12 @@
 {# 子模板的 title 块只渲染一次，先捕获成变量，顶栏「当前页标题」复用同一段文本。 #}
 {% set page_heading %}{% block title %}工作台{% endblock %}{% endset %}
 <title>{{ page_heading|trim }} · 工作台</title>
-<link rel="stylesheet" href="/static/app.css">
-<link rel="stylesheet" href="/static/auth.css">
-<script src="/static/htmx.min.js" defer></script>
-<script src="/static/app.js" defer></script>
-<script src="/static/nav.js" defer></script>
+{# ?v=asset_v() —— 静态资源版本号，部署后强制浏览器取新样式 #}
+<link rel="stylesheet" href="/static/app.css?v={{ asset_v() }}">
+<link rel="stylesheet" href="/static/auth.css?v={{ asset_v() }}">
+<script src="/static/htmx.min.js?v={{ asset_v() }}" defer></script>
+<script src="/static/app.js?v={{ asset_v() }}" defer></script>
+<script src="/static/nav.js?v={{ asset_v() }}" defer></script>
 {% block head_extra %}{% endblock %}
 </head>
 {% set path = request.url.path if request else '' %}

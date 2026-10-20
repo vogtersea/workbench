@@ -139,6 +139,15 @@ def create_app() -> FastAPI:
     app.add_middleware(security.AuthMiddleware)
     app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 
+    # 静态资源每次向服务端校验：配合模板里的 ?v=asset_v()，避免部署后浏览器继续用旧 app.css
+    # （曾导致侧边栏样式不生效、页面排版错乱）。
+    @app.middleware("http")
+    async def static_no_cache(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
     # /healthz 由 main.py 独占；/login、/logout、/setup、/register 由 pages_auth 提供（SPEC 15.6）。
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict:

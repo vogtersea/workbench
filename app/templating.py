@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -122,12 +123,26 @@ def sidebar_stats(request) -> dict[str, Any]:
     return stats
 
 
+@lru_cache(maxsize=1)
+def asset_version() -> int:
+    """静态资源版本号：取 app/static 下所有文件的最大 mtime（进程内缓存）。
+
+    模板用它给 /static/*.css|js 追加 ?v=，避免部署后浏览器继续使用旧样式。
+    """
+    try:
+        base = Path(__file__).parent / "static"
+        return int(max((p.stat().st_mtime for p in base.iterdir() if p.is_file()), default=0))
+    except Exception:
+        return 0
+
+
 templates.env.filters["md"] = md
 templates.env.filters["fmt_cn"] = fmt_cn
 templates.env.filters["status_label"] = status_label
 templates.env.filters["priority_label"] = priority_label
 templates.env.globals["settings_get"] = settings_get
 templates.env.globals["sidebar_stats"] = sidebar_stats
+templates.env.globals["asset_v"] = asset_version
 templates.env.globals["STATUS_LABELS"] = STATUS_LABELS
 templates.env.globals["PRIORITY_LABELS"] = PRIORITY_LABELS
 

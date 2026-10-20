@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}报告中心{% endblock %}
-{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css"><script src="/static/reports.js" defer></script>{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/tasks.css?v={{ asset_v() }}"><script src="/static/reports.js?v={{ asset_v() }}" defer></script>{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
