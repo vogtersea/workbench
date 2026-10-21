@@ -6,4 +6,6 @@
 - 桌面能力通过 app/services/desktop_bridge.py 注入，服务器版完全不受影响。
 """
 
-__version__ = "1.0.1"
+from app import brand
+
+__version__ = brand.VERSION  # 与 app 版本单一来源
