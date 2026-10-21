@@ -57,7 +57,7 @@ def _ts(value: Any) -> str:
 def _due_text(row: Any) -> str:
     due = str(_field(row, "due_date") or "").strip()
     if not due:
-        return "（无 DDL）"
+        return "（无截止日期）"
     time_part = str(_field(row, "due_time") or "").strip()
     return ("%s %s" % (due, time_part)).strip()
 
@@ -134,7 +134,7 @@ def _task_fact_lines(row: Any) -> list[str]:
         "状态：%s" % _status_text(_field(row, "status")),
         "优先级：%s" % _priority_text(_field(row, "priority")),
         "所属周（周一）：%s" % (_field(row, "week_start") or "—"),
-        "DDL：%s" % _due_text(row),
+        "截止日期：%s" % _due_text(row),
         "创建时间：%s" % (_ts(_field(row, "created_at")) or "—"),
         "完成时间：%s" % (_ts(_field(row, "completed_at")) or "—"),
         "标签：%s" % _tags_text(_field(row, "tags")),
@@ -172,7 +172,7 @@ def _range_task_block(items: list[dict[str, Any]]) -> str:
             _priority_text(_field(row, "priority")),
         ))
         chunks.append("- 所属周（周一）：%s" % (_field(row, "week_start") or "—"))
-        chunks.append("- DDL：%s" % _due_text(row))
+        chunks.append("- 截止日期：%s" % _due_text(row))
         chunks.append("- 创建时间：%s" % (_ts(_field(row, "created_at")) or "—"))
         chunks.append("- 完成时间：%s" % (_ts(_field(row, "completed_at")) or "—"))
         chunks.append("- 标签：%s" % _tags_text(_field(row, "tags")))

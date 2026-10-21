@@ -31,7 +31,7 @@
           <span class="badge badge-{{ t.status }}">{{ t.status|status_label }}</span>
           <span class="badge badge-p{{ t.priority }}">优先级 {{ t.priority|priority_label }}</span>
           {% if t.project_name %}<span class="tag">{{ t.project_name }}</span>{% endif %}
-          {% if t.due_date %}<span class="muted small nowrap">DDL {{ t.due_date }}</span>{% endif %}
+          {% if t.due_date %}<span class="muted small nowrap">截止 {{ t.due_date }}</span>{% endif %}
           {% if t.completed_at %}<span class="muted small nowrap">完成于 {{ t.completed_at[:16]|replace('T', ' ') }}</span>{% endif %}
         </div>
       </div>

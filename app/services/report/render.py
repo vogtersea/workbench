@@ -65,13 +65,13 @@ def _task_risks(row: Any, progress: list[Any]) -> str:
     status = str(_field(row, "status") or "")
     due = timeutil.parse_date(_field(row, "due_date"))
     if due is None:
-        risks.append("未登记 DDL：无法进入逾期/临期提醒。")
+        risks.append("未登记截止日期：无法进入逾期/临期提醒。")
     elif status in {"todo", "doing"}:
         delta = (due - timeutil.today()).days
         if delta < 0:
-            risks.append("已逾期 %s 天（DDL %s）。" % (-delta, due.isoformat()))
+            risks.append("已逾期 %s 天（截止日期 %s）。" % (-delta, due.isoformat()))
         elif delta == 0:
-            risks.append("DDL 就是今天。")
+            risks.append("截止日期就是今天。")
     if not str(_field(row, "done_criteria") or "").strip():
         risks.append("完成条件未填写，收尾缺少可核对的标准。")
     if not progress:
@@ -79,7 +79,7 @@ def _task_risks(row: Any, progress: list[Any]) -> str:
     if status == "cancelled":
         risks.append("状态为已取消，需确认相关工作是否仍需推进。")
     if not risks:
-        risks.append("基于入库字段未发现结构性风险（DDL、完成条件、进展均已登记）。")
+        risks.append("基于入库字段未发现结构性风险（截止日期、完成条件、进展均已登记）。")
     return "\n".join("- %s" % item for item in risks)
 
 
@@ -92,9 +92,9 @@ def _task_plan(row: Any, progress: list[Any]) -> str:
     elif status == "done":
         steps.append("无需后续动作；如需复盘，可在归档区查阅历史进展。")
     elif status == "cancelled":
-        steps.append("若确定重启，先改回「待办」并重新评估 DDL 与完成条件。")
+        steps.append("若确定重启，先改回「待办」并重新评估截止日期与完成条件。")
     if timeutil.parse_date(_field(row, "due_date")) is None:
-        steps.append("补充 DDL，让它进入逾期/临期提醒。")
+        steps.append("补充截止日期，让它进入逾期/临期提醒。")
     if not str(_field(row, "done_criteria") or "").strip():
         steps.append("补齐完成条件，明确可核对的收尾标准。")
     if not steps:
@@ -137,7 +137,7 @@ def _range_completion(data: dict[str, Any]) -> str:
         for item in pending:
             row = item["task"]
             lines.append(
-                "- %s%s（状态：%s，DDL：%s）"
+                "- %s%s（状态：%s，截止日期：%s）"
                 % (
                     _field(row, "title") or "（无标题）",
                     _routine_note(row),
@@ -187,7 +187,7 @@ def _range_risks(data: dict[str, Any]) -> str:
         risks.append("逾期未完成 %s 项：%s%s" % (len(overdue), detail, tail))
     if no_due:
         risks.append(
-            "无 DDL 的未完成工作 %s 项：%s" % (len(no_due), "、".join(no_due[:8]))
+            "无截止日期的未完成工作 %s 项：%s" % (len(no_due), "、".join(no_due[:8]))
         )
     if not data["progressed"]:
         risks.append("本期没有任何进展记录，过程数据缺失。")
@@ -209,7 +209,7 @@ def _range_plan(data: dict[str, Any]) -> str:
     else:
         steps.append("本期新建工作已全部完成，下期以新计划为主。")
     if any(timeutil.parse_date(_field(r, "due_date")) is None for r in pending):
-        steps.append("为无 DDL 的结转项补上截止日期，让它进入提醒。")
+        steps.append("为无截止日期的结转项补上截止日期，让它进入提醒。")
     steps.append("下期继续按「完成条件」逐项核对，避免只记录进展不销号。")
     return "\n".join("- %s" % item for item in steps)
 
@@ -228,7 +228,7 @@ def _mock_task_md(
         "- 当前状态：%s" % _status_text(_field(row, "status")),
         "- 优先级：%s" % _priority_text(_field(row, "priority")),
         "- 所属周（周一）：%s" % (_field(row, "week_start") or "—"),
-        "- DDL：%s" % _due_text(row),
+        "- 截止日期：%s" % _due_text(row),
         "- 完成时间：%s" % (_ts(_field(row, "completed_at")) or "—"),
         "- 标签：%s" % _tags_text(_field(row, "tags")),
         "- 报告生成时间：%s" % (_ts(timeutil.now_iso()) or "—"),

@@ -69,7 +69,7 @@ PLACEHOLDER_HTML = """<!DOCTYPE html>
     <div class="card-head"><h2 class="card-title">后续交付</h2></div>
     <div class="card-body">
       <ul class="plain-list">
-        <li>仪表盘：逾期 / 今日 / 3 日内 / 本周 / 无 DDL 五区 + 快速添加</li>
+        <li>仪表盘：逾期 / 今日 / 3 日内 / 本周 / 无截止日期 五区 + 快速添加</li>
         <li>周视图、工作详情与进展时间线、归档恢复</li>
         <li>报告中心与 LLM 生成（MOCK 模式可用）</li>
         <li>Reminder 扫描与 Webhook 推送</li>

@@ -4,7 +4,7 @@
 > 项目根目录：D:/Users/suzhe/Documents/deepseek-harness/工作台项目
 
 ## 0. 目标与非目标
-个人工作流程跟踪系统：手动添加每周工作（详情 / 完成条件 / DDL），随时追加进展；未完成提醒，完成后销号归档；
+个人工作流程跟踪系统：手动添加每周工作（详情 / 完成条件 / 截止日期），随时追加进展；未完成提醒，完成后销号归档；
 数据落本地 SQLite；Docker 部署在 NAS；接入大模型生成单项工作与任意区间的工作总结；只读接入 Obsidian 知识库增强报告。
 
 非目标（v1 明确不做）：多用户与权限体系、移动端专门适配、附件/图片上传、docx/pdf 导出、Obsidian 写回。
@@ -134,7 +134,7 @@
 字段语义补充：
 - tasks.status 取值 todo | doing | done | cancelled；priority 1低 2中 3高
 - week_start 是该工作所属 ISO 周的周一（YYYY-MM-DD）
-- due_date 可空表示无 DDL；due_time 为 HH:MM 可空
+- due_date 可空表示无截止日期；due_time 为 HH:MM 可空
 - tags 逗号分隔、不含空格
 - 若 trigram 分词器不可用则降级 unicode61（初始化时 try/except，把实际分词器写入 settings 键 fts_tokenizer）
 - 时间一律 ISO8601 字符串，业务时区 TZ_NAME
@@ -237,7 +237,7 @@ MOCK 必须基于真实入库数据做确定性模板渲染，并在正文首行
 ### 页面路由（app/web/pages_*.py，Jinja2 渲染；每个模块暴露 pages = APIRouter()）
 
     | 方法 | 路径 | 说明 |
-    | GET | / | 仪表盘：逾期 / 今日 / 3日内 / 本周 / 无DDL 五区 + 快速添加 |
+    | GET | / | 仪表盘：逾期 / 今日 / 3日内 / 本周 / 无截止日期 五区 + 快速添加 |
     | GET | /week?offset=0 | ISO 周视图，按天分组，含上周/本周/下周导航 |
     | GET | /tasks/new | 新建工作表单 |
     | POST | /tasks | 创建（成功后 303 到 /tasks/{id}） |
@@ -282,7 +282,7 @@ MOCK 必须基于真实入库数据做确定性模板渲染，并在正文首行
 2. 销号归档：status=done 即 archived=1 且 completed_at=now，立刻离开所有活跃视图；/archive 可一键恢复。
 3. 提醒分区（仅 status in (todo, doing) 且 archived=0）：
    逾期 due_date < today；今日 due_date = today；临期 today < due_date <= today + remind_soon_days；
-   本周 week_start = 本周一；无DDL due_date IS NULL。
+   本周 week_start = 本周一；无截止日期 due_date IS NULL。
 4. 每日扫描：APScheduler 在 remind_time 触发 send_daily()；无待提醒项则不推送但写日志。
    WEBHOOK_URL 为空则只写站内，设置页展示最近一次扫描结果。
 5. Webhook 格式（webhook_format 取值）：
@@ -316,8 +316,8 @@ MOCK 必须基于真实入库数据做确定性模板渲染，并在正文首行
 
 ## 9. 验收口径（子代理自测 + 调度者复核）
 1. python -m uvicorn app.main:app --port 8080 可启动，/healthz 返回 200，库文件生成。
-2. 全链路：新建项目 -> 新建本周工作（详情 / 完成条件 / DDL）-> 追加进展 -> 完成 -> 出现在 /archive -> 可恢复。
-3. 周视图与五个仪表盘分区计数正确（构造边界数据：昨天 / 今天 / +3天 / +4天 / 无DDL）。
+2. 全链路：新建项目 -> 新建本周工作（详情 / 完成条件 / 截止日期）-> 追加进展 -> 完成 -> 出现在 /archive -> 可恢复。
+3. 周视图与五个仪表盘分区计数正确（构造边界数据：昨天 / 今天 / +3天 / +4天 / 无截止日期）。
 4. 报告：task 与 custom 各生成一份，MOCK 水印存在，落库可在列表看到，详情页渲染正常。
 5. Webhook：本地 echo 服务收到符合所选格式的 JSON；未配 URL 时页面不报错。
 6. Obsidian：临时 vault（2 个 md + frontmatter + 双链）索引后 search 命中，报告 context_notes 非空。
@@ -346,7 +346,7 @@ MOCK 必须基于真实入库数据做确定性模板渲染，并在正文首行
   webhook 日志的二次转义判断写错，解析嵌套 JSON 后确认 payload 正确（keys=['text']）。
 - 子代理交付的 scripts/smoke_test.py 在全新库上 11/11 PASS、退出码 0。
 - 数据层：8 张业务表 + notes_fts 虚拟表，WAL，FTS5 trigram；15 个共享文件 sha256 在四域并行开发期间零变更。
-- 端到端：建项目 -> 建工作（详情/完成条件/DDL）-> 追加进展 -> 完成 -> 归档 -> 恢复 -> 周视图三页 -> 报告(MOCK) ->
+- 端到端：建项目 -> 建工作（详情/完成条件/截止日期）-> 追加进展 -> 完成 -> 归档 -> 恢复 -> 周视图三页 -> 报告(MOCK) ->
   自定义区间 -> 反向区间 400 -> Obsidian 索引 3 篇 + 中文检索命中 -> 提醒三桶 1/1/1 -> Webhook 实收 -> 设置保存。
 - live 模式：以本地假 OpenAI 服务验证真实调用链（POST /v1/chat/completions + Bearer + 中文防编造 system prompt），
   落库报告 is_mock=0；未配置 key 时 MOCK 首行声明不可省略。

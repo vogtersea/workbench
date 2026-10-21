@@ -576,7 +576,7 @@ def _due_class(due_date, days_left) -> str:
 
 def _due_label(due_date, due_time, days_left) -> str:
     if due_date is None:
-        return "无 DDL"
+        return "无截止日期"
     if days_left is None:
         return str(due_date)
     if days_left < 0:

@@ -2,7 +2,7 @@
 
 > 可执行文件仍叫 Workbench.exe（历史原因，保持路径与 Release 资产名稳定）。
 
-个人工作流程跟踪系统：手动登记每周工作（详情 / 完成条件 / DDL），随时追加进展；未完成自动提醒，
+个人工作流程跟踪系统：手动登记每周工作（详情 / 完成条件 / 截止日期），随时追加进展；未完成自动提醒，
 完成后销号归档；数据落本地 SQLite；单镜像 Docker 部署到 NAS；接大模型生成单项与任意区间的
 工作总结；只读接入 Obsidian 知识库增强报告。
 
@@ -16,7 +16,7 @@
 
 | 模块 | 能力 |
 | --- | --- |
-| 仪表盘 / | 逾期 / 今日 / N 日内 / 本周 / 无 DDL 五区 + 快速添加 |
+| 仪表盘 / | 逾期 / 今日 / N 日内 / 本周 / 无截止日期 五区 + 快速添加 |
 | 周视图 /week | ISO 周按天分组，支持上周/本周/下周 |
 | 工作详情 /tasks/{id} | 详情、完成条件、进展时间线、状态切换、编辑、删除 |
 | 归档 /archive | 已完成 / 已取消，按完成周分组，可一键恢复 |
@@ -32,7 +32,7 @@
 - 逾期：due_date < 今天
 - 今日：due_date = 今天
 - 临期：今天 < due_date <= 今天 + remind_soon_days
-- 无 DDL：due_date 为空（不进提醒区）
+- 无截止日期：due_date 为空（不进提醒区）
 
 ---
 
@@ -42,7 +42,7 @@
 
     app/
       config.py            环境变量汇总（TZ / DATA_DIR / 密钥 / LLM / Webhook）
-      timeutil.py          业务时区、ISO 周、DDL 天数
+      timeutil.py          业务时区、ISO 周、距截止日期天数
       db.py                SQLite 连接（Row 工厂 / WAL / foreign_keys）+ DDL + init_db()
       security.py          可选口令鉴权中间件（APP_PASSWORD 为空即跳过）
       templating.py        Jinja2 环境、过滤器（md / fmt_cn / status_label / priority_label）
@@ -204,7 +204,7 @@ wb_session = hex(hmac_sha256(APP_SECRET, APP_PASSWORD))。
 | 变量 | 默认 | 说明 |
 | --- | --- | --- |
 | DATA_DIR | ./data | 数据目录，数据库为 DATA_DIR/app.db（Docker 内固定 /data） |
-| TZ_NAME | Asia/Shanghai | 业务时区，影响“今天”、扫描时刻、DDL 逾期天数 |
+| TZ_NAME | Asia/Shanghai | 业务时区，影响“今天”、扫描时刻、逾期天数 |
 | PORT | 8080 | 容器内监听端口（uvicorn 命令行参数，供脚本/文档引用） |
 | APP_PORT | 8080 | 宿主机对外端口（compose 映射左侧；建议改成非标准端口） |
 | APP_PASSWORD | 空 | 非空即启用口令登录；空 = 不鉴权（内网自用） |
@@ -517,7 +517,7 @@ reminders_log，可在设置页与 /api/reminders/preview、/api/reminders/test 
 | --- | --- |
 | a | GET /healthz → 200 且 {"ok":true} |
 | b | 建项目 → GET /api/projects 回读 |
-| c | 建 5 条边界工作（昨天 / 今天 / +3 / +4 / 无 DDL） |
+| c | 建 5 条边界工作（昨天 / 今天 / +3 / +4 / 无截止日期） |
 | d | GET /api/dashboard 四区计数断言（且 +4 不得落进 soon） |
 | e | 追加进展 → 回读命中 |
 | f | 标记完成 → 出现在 /archive → 恢复后离开归档 |

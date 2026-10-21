@@ -52,7 +52,7 @@
           <dd class="info-value"><span class="badge badge-p{{ task.priority }}">{{ task.priority|priority_label }}</span></dd>
         </div>
         <div class="info-item">
-          <dt class="info-label">DDL</dt>
+          <dt class="info-label">截止日期</dt>
           <dd class="info-value">
             {% if task.due_date %}
             <span class="{{ task.due_class }}">{{ task.due_date }}{% if task.due_time %} {{ task.due_time }}{% endif %}</span>

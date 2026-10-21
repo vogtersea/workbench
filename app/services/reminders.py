@@ -150,7 +150,7 @@ def _split(rows, soon_days: int) -> tuple[list[dict[str, Any]], list[dict[str, A
         item = _row_to_item(row)
         days = item["days_until"]
         if days is None:
-            continue  # 无 DDL 不进提醒区
+            continue  # 无截止日期不进提醒区
         if days < 0:
             overdue.append(item)
         elif days == 0:
@@ -262,7 +262,7 @@ def scan_all(user_ids: list[int] | None = None) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 def _relative(days: int | None) -> str:
     if days is None:
-        return "无 DDL"
+        return "无截止日期"
     if days < 0:
         return f"逾期 {-days} 天"
     if days == 0:
@@ -279,7 +279,7 @@ def _item_line(index: int, item: dict[str, Any]) -> str:
     flag = " [高]" if priority == 3 else (" [低]" if priority == 1 else "")
     due = item.get("due_date") or ""
     ddl = timeutil.fmt_cn(due) or str(due) or "无"
-    return f"{index}. {tag}{title}{flag} — DDL {ddl} · {_relative(item.get('days_until'))}"
+    return f"{index}. {tag}{title}{flag} — 截止日期 {ddl} · {_relative(item.get('days_until'))}"
 
 
 def _section(header: str, items: list[dict[str, Any]]) -> list[str]:

@@ -57,7 +57,7 @@
   ('today', '今日到期', 'bucket-today', '今天没有到期的工作'),
   ('soon', '临期（' ~ soon_days ~ ' 天内）', 'bucket-soon', '近期没有要到期的工作'),
   ('this_week', '本周（按所属周）', 'bucket-week', '本周还没有安排工作'),
-  ('no_due', '无 DDL', 'bucket-none', '没有待定日期的工作')
+  ('no_due', '无截止日期', 'bucket-none', '没有登记截止日期的工作')
 ] %}
 
 {% for key, title, cls, hint in sections %}

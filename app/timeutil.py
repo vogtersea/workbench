@@ -68,7 +68,7 @@ def fmt_cn(d) -> str:
 
 
 def days_until(due: str | None) -> int | None:
-    """距离 DDL 的天数：正=未来，0=今天，负=逾期；无 DDL 返回 None。"""
+    """距离截止日期的天数：正=未来，0=今天，负=逾期；无截止日期返回 None。"""
     day = parse_date(due)
     if day is None:
         return None
