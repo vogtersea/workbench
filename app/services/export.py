@@ -209,6 +209,8 @@ def build_docx(markdown: str, fallback_title: str = "") -> bytes:
         _add(doc, title, TITLE_FONT, TITLE_SIZE, align=WD_ALIGN_PARAGRAPH.CENTER)
 
     numberer = _Numberer()
+    title_norm = re.sub(r"\s+", "", title or "")
+    seen_heading = False
     for raw in lines[start:]:
         line = raw.rstrip()
         if not line.strip() or _HR_RE.match(line):
@@ -220,6 +222,11 @@ def build_docx(markdown: str, fallback_title: str = "") -> bytes:
             if not text:
                 continue
             gongwen_level = _heading_level(level)
+            # 首个一级标题若与文档标题相同（模型常把小节写成标题全文），跳过以免重复
+            if not seen_heading and gongwen_level == 1 and re.sub(r"\s+", "", text) == title_norm:
+                seen_heading = True
+                continue
+            seen_heading = True
             text = numberer.take(gongwen_level, text)
             (font, size), indent = HEADING_STYLE[gongwen_level]
             _add(doc, text, font, size, indent=indent)

@@ -142,6 +142,14 @@ def test_全文没有任何加粗():
     assert "加粗正文" in texts
 
 
+def test_与标题重复的首个一级标题被跳过():
+    doc = _doc("# 关于本周情况的报告\n\n## 关于本周情况的报告\n\n## 概述\n\n正文。\n")
+    texts = [p.text for p in doc.paragraphs]
+    assert texts[0] == "关于本周情况的报告"
+    assert "关于本周情况的报告" not in texts[1:]
+    assert "一、概述" in texts
+
+
 def test_空标题不产生空段落():
     doc = _doc("#\n\n##\n\n正文\n")
     assert [p.text for p in doc.paragraphs] == ["正文"]
