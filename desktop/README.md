@@ -3,6 +3,14 @@
 不依赖 Docker、不需要服务器：双击运行，本地起一个只监听 127.0.0.1 的服务，用 WebView2 窗口显示界面。
 业务代码与模板全量复用，功能与 NAS 版一致。
 
+## 下载现成的
+
+<https://github.com/vogtersea/workbench/releases/latest>
+
+- Workbench-Setup.exe —— 安装包（按用户安装，不需要管理员）
+- Workbench-portable-v1.0.0.zip —— 解压即用
+- SHA256SUMS.txt —— 校验和
+
 ## 构建
 
     .venv/Scripts/python.exe -m pip install -r requirements-desktop.txt

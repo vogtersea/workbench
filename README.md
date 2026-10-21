@@ -688,6 +688,16 @@ Windows 一般自带「仿宋」「黑体」「楷体」；名字带 _GB2312 的
 
 ## 16. 桌面版（Windows，不需要 Docker）
 
+**直接下载（推荐）**：<https://github.com/vogtersea/workbench/releases/latest>
+
+| 文件 | 说明 |
+|---|---|
+| Workbench-Setup.exe | 安装包（约 28 MB），按用户安装，不需要管理员权限，中文界面 |
+| Workbench-portable-v1.0.0.zip | 免安装版（约 36 MB），解压即用 |
+| SHA256SUMS.txt | 两个产物的 SHA-256 校验和 |
+
+二进制走 Release 发布（不进 git 历史），源码里只保留构建脚本。
+
 同一套业务代码与模板，多了一个桌面壳：本地起服务（只监听 127.0.0.1）+ WebView2 窗口 + 系统托盘。
 
     # 构建
