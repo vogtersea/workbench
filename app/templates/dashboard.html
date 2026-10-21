@@ -60,6 +60,7 @@
   ('no_due', '无截止日期', 'bucket-none', '没有登记截止日期的工作')
 ] %}
 
+<div class="bucket-grid">
 {% for key, title, cls, hint in sections %}
 <div class="card bucket {{ cls }}">
   <div class="card-head">
@@ -78,4 +79,5 @@
   {% endif %}
 </div>
 {% endfor %}
+</div>
 {% endblock %}

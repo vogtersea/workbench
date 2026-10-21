@@ -477,7 +477,9 @@ a.quiet { color: inherit; }
    ============================================================================ */
 
 .app-main { min-height: 100vh; display: flex; flex-direction: column; }
-.app-main > .container { flex: 1 0 auto; }
+/* width:100% 必需：.container 有 margin:0 auto，而 flex 纵向容器里的 auto 外边距会吸收剩余空间，
+   元素于是退化成「内容宽度」——桌面端看起来页面很瘦就是这个原因。 */
+.app-main > .container { flex: 1 0 auto; width: 100%; }
 .has-sidebar .app-main { margin-left: 220px; }
 
 /* ---------- 侧边栏 ---------- */
@@ -723,4 +725,44 @@ a.quiet { color: inherit; }
     --info: #1d63a6; --info-soft: #eaf2fb; --success: #2b8a3e; --success-soft: #eaf6ec;
   }
   .theme-toggle { display: none !important; }
+}
+/* ============================================================================
+   PC 宽屏适配（v1.0.6）—— 移动端断点保持原样，只在宽屏释放空间
+   ========================================================================== */
+
+/* 仪表盘五个分区：窄屏单列（原样），宽屏并排 */
+.bucket-grid { display: grid; gap: var(--gap); align-items: start; }
+
+/* 五个分区用 6 栏栅格：逾期/今日/临期各占 2 栏（一行三个），
+   条目通常最多的本周/无截止日期各占 3 栏（一行两个）——正好两行排满，不留空档。 */
+@media (min-width: 1100px) {
+  .bucket-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .bucket-grid > .bucket { grid-column: span 2; }
+  .bucket-grid .bucket-week, .bucket-grid .bucket-none { grid-column: span 3; }
+}
+
+/* 内容宽度：默认 1180（原值）；1360 以上 1380；1760 以上 1560；2160 以上 1720。
+   阈值留了 60px 余量：浏览器滚动条与窗口边框会吃掉一部分视口宽度。 */
+@media (min-width: 1360px) {
+  :root { --maxw: 1380px; }
+  .container { padding-left: 28px; padding-right: 28px; }
+}
+
+@media (min-width: 1760px) {
+  :root { --maxw: 1560px; }
+  .container { padding-left: 32px; padding-right: 32px; }
+}
+
+@media (min-width: 2160px) {
+  :root { --maxw: 1720px; }
+}
+
+/* 宽屏下表格、表单、周视图更舒展 */
+@media (min-width: 1280px) {
+  .table { font-size: 13.5px; }
+  .table th, .table td { padding-left: 14px; padding-right: 14px; }
+  .form-row { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .page-title { font-size: 22px; }
+  .week-grid { gap: 12px; }
+  .day-col { min-height: 190px; }
 }
