@@ -1,0 +1,7 @@
+# 桌面版（Windows）额外依赖；服务器/NAS 部署不需要安装这些。
+# 安装：.venv/Scripts/python.exe -m pip install -r requirements-desktop.txt
+pywebview>=5.0          # 窗口壳（Windows 走 Edge WebView2）
+pystray>=0.19           # 系统托盘
+pillow>=10.0            # 托盘图标绘制
+winotify>=1.1           # Windows 系统通知
+pyinstaller>=6.6        # 打包 exe（构建期依赖）
