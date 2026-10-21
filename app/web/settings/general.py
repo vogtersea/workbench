@@ -165,7 +165,16 @@ def _page_context(
         "vault": _vault_context(browse_rel),
         "notice": notice,
         "notice_kind": "info",
+        # 桌面版才有的状态（数据目录/托盘/自启/通知）；服务器版为 {}
+        "desktop_state": _desktop_state(),
     }
+
+
+def _desktop_state() -> dict[str, Any]:
+    """桌面版状态；服务器版返回空字典（模板据此隐藏整块）。"""
+    from app.services import desktop_bridge
+
+    return desktop_bridge.state() if desktop_bridge.available() else {}
 
 
 def _render_page(
