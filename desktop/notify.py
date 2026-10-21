@@ -6,7 +6,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-APP_ID = "工作台"
+from app import brand
+
+APP_ID = brand.NAME
 
 
 def available() -> bool:
@@ -26,7 +28,7 @@ def toast(title: str, body: str, url: str | None = None) -> bool:
         note = Notification(app_id=APP_ID, title=title, msg=body, duration="short")
         if url:
             note.set_audio(None, None) if False else None
-            note.add_actions(label="打开工作台", launch=url)
+            note.add_actions(label="打开" + brand.NAME, launch=url)
         note.show()
         return True
     except Exception:

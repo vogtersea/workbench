@@ -1,4 +1,4 @@
-# 工作台项目 · TECHNICAL SPEC（子代理共享契约）
+# 工作志 · TECHNICAL SPEC（子代理共享契约）
 
 > 本文件是唯一权威契约。所有实现必须与此一致；如需偏离，先在本文件登记再实施。
 > 项目根目录：D:/Users/suzhe/Documents/deepseek-harness/工作台项目

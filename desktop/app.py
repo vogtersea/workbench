@@ -19,7 +19,9 @@ from desktop import __version__, firstrun, notify, prefs as prefs_mod, server as
 logger = logging.getLogger("desktop")
 
 MUTEX_NAME = "WorkbenchDesktop.SingleInstance"
-WINDOW_TITLE = "工作台"
+from app import brand  # noqa: E402  (品牌单一来源)
+
+WINDOW_TITLE = brand.NAME
 
 
 def _setup_logging() -> Path:
@@ -62,7 +64,7 @@ def _resolve_data_dir(prefs: prefs_mod.Prefs, *, interactive: bool = True) -> Pa
         return firstrun.ensure_dir(prefs.data_dir)
 
     default = firstrun.default_data_dir()
-    chosen = firstrun.ask_directory("选择工作台数据目录", default) if interactive else None
+    chosen = firstrun.ask_directory("选择" + brand.NAME + "数据目录", default) if interactive else None
     target = firstrun.ensure_dir(chosen or default)
 
     prefs.data_dir = str(target)
@@ -73,13 +75,13 @@ def _resolve_data_dir(prefs: prefs_mod.Prefs, *, interactive: bool = True) -> Pa
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="workbench", description="工作台桌面版")
+    parser = argparse.ArgumentParser(prog="workbench", description=brand.NAME + "桌面版")
     parser.add_argument("--autostart", action="store_true", help="开机自启模式（不弹首次对话框、最小化到托盘）")
     parser.add_argument("--data-dir", default="", help="临时覆盖数据目录（排障用）")
     args, _unknown = parser.parse_known_args(argv)
 
     log_file = _setup_logging()
-    logger.info("工作台桌面版 v%s 启动（python %s）", __version__, sys.version.split()[0])
+    logger.info("%s 桌面版 v%s 启动（python %s）", brand.NAME, __version__, sys.version.split()[0])
 
     if _single_instance() is None:
         logger.info("已有实例在运行，本次启动退出")
@@ -89,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
 
             root = tk.Tk()
             root.withdraw()
-            messagebox.showinfo(WINDOW_TITLE, "工作台已经在运行了。\n请在系统托盘里找到它的图标。")
+            messagebox.showinfo(WINDOW_TITLE, brand.NAME + "已经在运行了。\n请在系统托盘里找到它的图标。")
             root.destroy()
         except Exception:
             pass
@@ -218,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
             window.hide()
         except Exception:
             logger.debug("隐藏窗口失败", exc_info=True)
-        _info("工作台已最小化到系统托盘，定时提醒仍在后台运行。")
+        _info(brand.NAME + "已最小化到系统托盘，定时提醒仍在后台运行。")
         return False
 
     try:

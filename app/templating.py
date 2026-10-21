@@ -17,7 +17,7 @@ from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from app import timeutil
+from app import brand, timeutil
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -143,6 +143,7 @@ templates.env.filters["priority_label"] = priority_label
 templates.env.globals["settings_get"] = settings_get
 templates.env.globals["sidebar_stats"] = sidebar_stats
 templates.env.globals["asset_v"] = asset_version
+templates.env.globals["BRAND"] = brand  # 品牌单一来源：名字/标语/版本只改 app/brand.py
 templates.env.globals["STATUS_LABELS"] = STATUS_LABELS
 templates.env.globals["PRIORITY_LABELS"] = PRIORITY_LABELS
 

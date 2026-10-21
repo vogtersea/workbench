@@ -3,10 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>邀请码注册 · 工作台</title>
+<title>邀请码注册 · {{ BRAND.NAME }}</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("wb-theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="/static/app.css?v={{ asset_v() }}">
 <link rel="stylesheet" href="/static/auth.css?v={{ asset_v() }}">
 <script src="/static/app.js?v={{ asset_v() }}" defer></script>
+<script src="/static/theme.js?v={{ asset_v() }}" defer></script>
 </head>
 <body class="auth-body">
 <main class="auth-card auth-card-wide">

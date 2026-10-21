@@ -14,26 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 def _icon_image():
-    """生成托盘图标（PIL 画一个圆角方块 + 字母 W），无需外部图片资源。"""
-    from PIL import Image, ImageDraw, ImageFont
+    """托盘图标：与网页/安装包同一套图形（desktop/icon.py）。"""
+    from desktop.icon import render
 
-    size = 64
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    draw.rounded_rectangle((4, 4, size - 4, size - 4), radius=14, fill=(70, 98, 214, 255))
-    try:
-        font = ImageFont.truetype("segoeui.ttf", 36)
-    except Exception:
-        font = ImageFont.load_default()
-    text = "W"
-    box = draw.textbbox((0, 0), text, font=font)
-    draw.text(
-        ((size - (box[2] - box[0])) / 2 - box[0], (size - (box[3] - box[1])) / 2 - box[1]),
-        text,
-        font=font,
-        fill=(255, 255, 255, 255),
-    )
-    return img
+    return render(64)
 
 
 class Tray:
@@ -69,7 +53,7 @@ class Tray:
         import pystray
 
         return pystray.Menu(
-            pystray.MenuItem("打开工作台", lambda *_: self._on_open(), default=True),
+            pystray.MenuItem("打开" + self._title, lambda *_: self._on_open(), default=True),
             pystray.MenuItem("设置", lambda *_: self._on_settings()),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("更改数据目录…", lambda *_: self._on_change_dir()),

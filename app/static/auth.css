@@ -48,3 +48,6 @@
   .topbar-user { max-width: 120px; }
   .auth-actions { align-items: flex-start; }
 }
+/* ---------- 登录/注册页的品牌区（v1.0.2）---------- */
+.auth-logo { display: block; margin: 0 auto 10px; width: 56px; height: 56px; border-radius: 14px; }
+.auth-tagline { text-align: center; font-size: 12px; color: var(--text-faint); margin: -4px 0 14px; }

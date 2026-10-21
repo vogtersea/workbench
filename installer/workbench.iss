@@ -1,9 +1,9 @@
-; 工作台桌面版安装包（Inno Setup 6）
+; 工作志桌面版安装包（Inno Setup 6）
 ; 编译：ISCC.exe installer/workbench.iss   -> dist/Workbench-Setup.exe
 ; 设计取舍：按用户安装（PrivilegesRequired=lowest）到 %LOCALAPPDATA%\Programs，
 ;           不写系统目录、不需要管理员权限；数据目录由首次启动时用户自己选。
 
-#define MyAppName "工作台"
+#define MyAppName "工作志"
 #define MyAppVersion "1.0.1"
 #define MyAppPublisher "vogtersea"
 #define MyAppExeName "Workbench.exe"

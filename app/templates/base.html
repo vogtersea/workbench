@@ -4,14 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {# 子模板的 title 块只渲染一次，先捕获成变量，顶栏「当前页标题」复用同一段文本。 #}
-{% set page_heading %}{% block title %}工作台{% endblock %}{% endset %}
-<title>{{ page_heading|trim }} · 工作台</title>
+{% set page_heading %}{% block title %}{{ BRAND.NAME }}{% endblock %}{% endset %}
+<title>{{ page_heading|trim }} · {{ BRAND.NAME }}</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<meta name="theme-color" content="#3b5bdb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)">
+{# 主题引导：在首屏绘制前套用已保存的主题，避免深色用户看到白屏闪一下 #}
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("wb-theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
 {# ?v=asset_v() —— 静态资源版本号，部署后强制浏览器取新样式 #}
 <link rel="stylesheet" href="/static/app.css?v={{ asset_v() }}">
 <link rel="stylesheet" href="/static/auth.css?v={{ asset_v() }}">
 <script src="/static/htmx.min.js?v={{ asset_v() }}" defer></script>
 <script src="/static/app.js?v={{ asset_v() }}" defer></script>
 <script src="/static/nav.js?v={{ asset_v() }}" defer></script>
+<script src="/static/theme.js?v={{ asset_v() }}" defer></script>
 {% block head_extra %}{% endblock %}
 </head>
 {% set path = request.url.path if request else '' %}
@@ -26,7 +42,15 @@
 {% if show_sidebar %}
 <div class="sidebar-scrim" data-sidebar-close aria-hidden="true"></div>
 <aside class="sidebar" id="app-sidebar" aria-label="侧边栏">
-  <div class="sidebar-brand"><a class="brand" href="/">工作台</a></div>
+  <div class="sidebar-brand">
+    <a class="brand brand-stacked" href="/">
+      <img class="brand-mark" src="/static/logo.svg" alt="" width="28" height="28">
+      <span class="brand-words">
+        <span class="brand-name">{{ BRAND.NAME }}</span>
+        <span class="brand-tagline">{{ BRAND.TAGLINE }}</span>
+      </span>
+    </a>
+  </div>
   <div class="sidebar-quick">
     <a class="btn btn-primary btn-block" href="/tasks/new">+ 新建工作</a>
     <div class="sidebar-stats" aria-label="快捷统计">
@@ -89,10 +113,25 @@
       </svg>
     </button>
     {% endif %}
-    <a class="brand topbar-brand" href="/">工作台</a>
+    <a class="brand topbar-brand" href="/">
+      <img class="brand-mark" src="/static/logo.svg" alt="" width="20" height="20">
+      <span class="brand-name">{{ BRAND.NAME }}</span>
+    </a>
     <div class="topbar-title" title="{{ heading }}">{{ heading }}</div>
     <div class="topbar-right">
       {% block topbar_actions %}{% endblock %}
+      <button class="icon-btn theme-toggle" type="button" id="theme-toggle"
+              aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+          <path d="M8 1v1.8M8 13.2V15M1 8h1.8M13.2 8H15M3.05 3.05l1.27 1.27M11.68 11.68l1.27 1.27M12.95 3.05l-1.27 1.27M4.32 11.68l-1.27 1.27"
+                fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+        </svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.9 5.9 0 1 0 7.1 7.1z"
+                fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+        </svg>
+      </button>
       {% include "partials/auth_user_menu.html" %}
     </div>
   </div>
@@ -119,7 +158,7 @@
       {% if obsidian_available %}Obsidian 就绪{% else %}Obsidian 未接入{% endif %}
     </span>
     <span class="status-spacer"></span>
-    <span class="status-item muted">工作台 v0.1.0</span>
+    <span class="status-item muted">{{ BRAND.NAME }} v{{ BRAND.VERSION }}</span>
   </div>
 </footer>
 </div>

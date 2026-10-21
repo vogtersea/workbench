@@ -3,7 +3,6 @@
 import logging
 import logging.config
 
-import pytest
 
 from desktop import server as server_mod
 

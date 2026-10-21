@@ -10,6 +10,8 @@ import os
 import sys
 from pathlib import Path
 
+from app import brand
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,7 +47,7 @@ def ask_directory(title: str, initial: Path | None = None) -> str | None:
         if initial:
             messagebox.showinfo(
                 title,
-                "请选择工作台的数据目录。\n\n数据库（app.db）与配置都会放在这个目录里，"
+                "请选择" + brand.NAME + "的数据目录。\n\n数据库（app.db）与配置都会放在这个目录里，"
                 "建议放在非系统盘、且你有写权限的地方。\n\n默认位置：%s" % initial,
                 parent=root,
             )

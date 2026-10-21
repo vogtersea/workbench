@@ -20,7 +20,7 @@ from typing import Any
 
 import httpx
 
-from app import db, security, timeutil
+from app import brand, db, security, timeutil
 from app.config import settings
 from app.services import settings_store
 
@@ -38,7 +38,7 @@ WEBHOOK_FORMATS: tuple[str, ...] = (
 WEBHOOK_TIMEOUT = 10.0          # 秒
 WEBHOOK_RETRY = 1               # 失败后重试 1 次（共 2 次尝试）
 MAX_ITEMS_PER_SECTION = 10      # 每段最多列 10 条
-TITLE_PREFIX = "工作台提醒"
+TITLE_PREFIX = brand.NAME + "提醒"
 PAYLOAD_LIMIT = 4000            # 写库时截断，避免日志表被超长正文撑爆
 ROUTINE_TAG = "[例行]"           # 例行实例在日报条目上的前缀（SPEC 16.4）
 LAST_SCAN_KEY = "last_scan_json"
@@ -323,7 +323,7 @@ def build_message(scan_result: dict[str, Any] | None = None) -> str:
     if not result.get("has_items"):
         lines.append("今天没有需要提醒的未完成工作。")
         lines.append("")
-    lines.append("— 由工作台自动发送")
+    lines.append("— 由" + brand.NAME + "自动发送")
     return "\n".join(lines)
 
 
@@ -382,7 +382,7 @@ def build_message_multi(scan_all_result: dict[str, Any] | None = None) -> str:
     if not pending:
         lines.append("今天没有需要提醒的未完成工作。")
         lines.append("")
-    lines.append("— 由工作台自动发送")
+    lines.append("— 由" + brand.NAME + "自动发送")
     return "\n".join(lines)
 
 
@@ -533,7 +533,7 @@ def _notify_desktop(result: dict[str, Any]) -> None:
             counts.get("today", 0),
             counts.get("soon", 0),
         )
-        desktop_bridge.notify("工作台 · 每日提醒", body, "/")
+        desktop_bridge.notify(brand.NAME + " · 每日提醒", body, "/")
     except Exception:
         logger.debug("桌面通知跳过", exc_info=True)
 

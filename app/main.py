@@ -24,6 +24,7 @@ from app.api import (
     routes_settings,
     routes_tasks,
 )
+from app import brand
 from app.api import routes_desktop
 from app.config import APP_DIR
 from app.web import (
@@ -43,13 +44,13 @@ PLACEHOLDER_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>仪表盘 · 工作台</title>
+<title>仪表盘 · 工作志</title>
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="/">工作台</a>
+    <a class="brand" href="/">工作志</a>
     <nav class="nav">
       <a href="/" class="active">仪表盘</a>
       <a href="/week">周视图</a>
@@ -131,8 +132,8 @@ def create_app() -> FastAPI:
         )
 
     app = FastAPI(
-        title="工作台项目",
-        version="0.1.0",
+        title=brand.FULL_NAME,
+        version=brand.VERSION,
         lifespan=lifespan,
         docs_url="/api/docs",
         redoc_url=None,

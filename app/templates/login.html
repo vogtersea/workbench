@@ -3,14 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>登录 · 工作台</title>
+<title>登录 · {{ BRAND.NAME }}</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("wb-theme");
+    if (saved === "dark" || saved === "light") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="/static/app.css?v={{ asset_v() }}">
 <link rel="stylesheet" href="/static/auth.css?v={{ asset_v() }}">
 <script src="/static/app.js?v={{ asset_v() }}" defer></script>
+<script src="/static/theme.js?v={{ asset_v() }}" defer></script>
 </head>
 <body class="auth-body">
 <main class="auth-card">
-  <h1 class="auth-title">工作台</h1>
+  <img class="auth-logo" src="/static/logo.svg" alt="" width="56" height="56">
+  <h1 class="auth-title">{{ BRAND.NAME }}</h1>
+  <p class="auth-tagline">{{ BRAND.TAGLINE }}</p>
   {% if mode == 'legacy' %}
   <p class="muted small auth-sub">请输入访问口令</p>
   {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
