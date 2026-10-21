@@ -108,14 +108,15 @@ def test_超长单段不拆分不丢字():
     assert doc.paragraphs[-1].paragraph_format.first_line_indent == Pt(INDENT_PT)
 
 
-def test_小节按级别映射黑体楷体仿宋():
+def test_小节按级别映射黑体楷体仿宋并自动编号():
     markdown = "## 一级小节\n\n### 二级小节\n\n#### 三级小节\n\n正文段落。"
     doc = _load(build_docx(markdown, "标题"))
 
+    # v1.0.4 起按公文层级自动编号：一、/（一）/1.
     assert [p.text for p in doc.paragraphs[1:]] == [
-        "一级小节",
-        "二级小节",
-        "三级小节",
+        "一、一级小节",
+        "（一）二级小节",
+        "1.三级小节",
         "正文段落。",
     ]
     fonts = [p.runs[0].font.name for p in doc.paragraphs[1:]]
