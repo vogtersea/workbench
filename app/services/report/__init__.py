@@ -195,6 +195,35 @@ def delete_report(rid: int, *, owner_id: int | None = None) -> None:
     return None
 
 
+def content_of(row: Any) -> str:
+    """报告正文：改过就用改后的，否则用生成时的原文（W-11）。
+
+    行里没有 content_md_edited 字段（老库未迁移）时按未编辑处理。
+    """
+    if row is None:
+        return ""
+    try:
+        edited = row["content_md_edited"]
+    except (KeyError, IndexError):
+        edited = None
+    return edited if edited else (row["content_md"] or "")
+
+
+def save_content(rid: int, content: str, *, owner_id: int | None = None) -> bool:
+    """保存页内编辑的正文；content 为空串表示恢复原文（置 NULL）。返回是否命中该报告。"""
+    try:
+        report_id = int(rid)
+    except (TypeError, ValueError):
+        return False
+    value = (content or "").strip()
+    sql = "UPDATE reports SET content_md_edited = ? WHERE id = ?"
+    params: list[Any] = [value or None, report_id]
+    if owner_id is not None:
+        sql += " AND owner_id = ?"
+        params.append(int(owner_id))
+    return db.execute(sql, tuple(params)) == 1
+
+
 def parse_context_notes(raw: Any) -> list[dict]:
     """把 reports.context_notes（JSON 数组）解析成 list[dict]；坏数据返回空列表。"""
     if not raw:

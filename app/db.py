@@ -343,6 +343,20 @@ def _ensure_fts() -> str:
     return "unavailable"
 
 
+def _ensure_report_columns() -> list[str]:
+    """幂等补齐 reports.content_md_edited（W-11：报告页内二次编辑）。"""
+    info = query("PRAGMA table_info(reports)")
+    if not info:
+        logger.warning("表 reports 不存在，跳过报告编辑列迁移")
+        return []
+    if any(row["name"] == "content_md_edited" for row in info):
+        return []
+    with cursor() as conn:
+        conn.execute("ALTER TABLE reports ADD COLUMN content_md_edited TEXT")
+    logger.info("表 reports 已新增 content_md_edited（页内编辑正文）")
+    return ["reports"]
+
+
 def init_db() -> None:
     """幂等建表 + 记录实际 fts 分词器 + 写入默认 settings。"""
     settings.data_dir.mkdir(parents=True, exist_ok=True)
@@ -352,6 +366,7 @@ def init_db() -> None:
 
     added_owner = _ensure_owner_columns()
     added_routine = _ensure_routine_columns()
+    _ensure_report_columns()
     tokenizer = _ensure_fts()
     with cursor() as conn:
         conn.execute(

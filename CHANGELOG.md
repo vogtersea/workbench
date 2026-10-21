@@ -35,6 +35,28 @@ P2：把「返回值靠猜」与「备份没验证过」两个隐患清掉。
 
 - 无需迁移。不影响数据库结构。
 
+## [v0.3.1] — 2026-10-21
+
+W-11：报告页内二次编辑（方案 P2 最后一项）。
+
+**改了什么**
+
+- reports 表新增可空列 content_md_edited（启动时幂等 ALTER，无需手工迁移）
+- 报告详情页新增「编辑正文」区：textarea + 保存正文；清空并保存即恢复原文
+- 编辑过的报告在标题旁显示「已修改」标记；页面正文、复制原文、导出 Word 三处统一取改后版本
+- 原始生成内容 content_md 永不被覆盖，随时可回退
+
+**影响哪些接口**
+
+- 新增 POST /reports/{id}/edit（越权/不存在 404）
+- GET /reports/{id} 额外提供 content（改后正文）与 edited（是否改过）给模板
+- GET /reports/{id}/export.docx 改为导出改后正文
+- db 层新增 reports.content_of / save_content 两个函数
+
+**是否需要迁移**
+
+- 无需手工迁移：应用启动时 init_db() 检测到缺列会自动 ALTER TABLE 补上，既有报告 content_md_edited 为 NULL，行为与以前一致。
+
 ## [未发布]
 
 （方案剩余项：W-11 报告页内二次编辑。W-10 / W-12 已随 v0.3.0 发布。）

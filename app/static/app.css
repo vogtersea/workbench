@@ -221,6 +221,8 @@ a.quiet { color: inherit; }
   font-family: var(--font-mono); letter-spacing: .02em;
 }
 .badge-live { background: var(--success-soft); color: var(--success); border-color: #cbe6d2; }
+/* 页内二次编辑过的报告（W-11） */
+.badge-edit { background: var(--warn-soft); color: var(--warn); border-color: #f0dcb4; }
 .badge-muted { background: var(--surface-2); color: var(--text-faint); border-color: var(--border); }
 
 /* ---------- 按钮 ---------- */

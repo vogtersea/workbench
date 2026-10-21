@@ -197,6 +197,20 @@ def report_detail(request: Request, rid: int):
         kind_labels=reports.KIND_LABELS,
         as_q=as_query(request),
         export_enabled=getattr(settings, "export_docx", True),
+        content=reports.content_of(row),
+        edited=bool(row["content_md_edited"]),
+    )
+
+
+@pages.post("/reports/{rid}/edit")
+def report_edit(request: Request, rid: int, content: str = Form("")):
+    """保存页内编辑的正文（W-11）。空正文视为恢复原文。越权/不存在一律 404 回列表。"""
+    owner_id = _owner(request)
+    if reports.get_report(rid, owner_id=owner_id) is None:
+        raise HTTPException(status_code=404, detail="报告不存在")
+    reports.save_content(rid, content, owner_id=owner_id)
+    return RedirectResponse(
+        "/reports/%s%s" % (rid, as_query(request)), status_code=303
     )
 
 
@@ -210,7 +224,7 @@ def report_export_docx(request: Request, rid: int):
     if row is None:
         return RedirectResponse("/reports", status_code=303)
 
-    data = export.build_docx(row["content_md"], row["scope_label"])
+    data = export.build_docx(reports.content_of(row), row["scope_label"])
     day = (row["created_at"] or "")[:10]
     filename = "%s%s.docx" % (row["scope_label"], "-" + day if day else "")
     headers = {

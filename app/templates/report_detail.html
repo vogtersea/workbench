@@ -21,6 +21,7 @@
     <a class="btn btn-sm" href="/reports{{ as_q|default('', true) }}">返回列表</a>
     <button class="btn btn-sm" type="button" onclick="window.print()">打印</button>
     <button class="btn btn-sm" type="button" data-copy-target="#report-raw">复制原文</button>
+    <a class="btn btn-sm" href="#report-edit">编辑正文</a>
     {% if export_enabled %}
     <a class="btn btn-sm btn-primary" href="/reports/{{ report.id }}/export.docx{{ as_q|default('', true) }}">下载 Word</a>
     {% endif %}
@@ -36,6 +37,7 @@
     <h2 class="card-title">
       {{ kind_labels.get(report.kind, report.kind) }}
       {% if report.is_mock %}<span class="badge badge-mock">MOCK</span>{% else %}<span class="badge badge-live">LIVE</span>{% endif %}
+      {% if edited %}<span class="badge badge-edit">已修改</span>{% endif %}
     </h2>
     <div class="report-meta">
       {% if report.range_start %}
@@ -48,7 +50,21 @@
     </div>
   </div>
   <div class="card-body">
-    <div class="prose">{{ report.content_md | md }}</div>
+    <div class="prose">{{ content | md }}</div>
+  </div>
+  <div class="card-body no-print" id="report-edit">
+    <form method="post" action="/reports/{{ report.id }}/edit{{ as_q|default('', true) }}">
+      <label class="field-label" for="report-content">
+        编辑正文（保存后导出 Word 与「复制原文」都用这份；清空并保存即恢复原文）
+      </label>
+      <textarea id="report-content" name="content" class="textarea" rows="14">{{ content }}</textarea>
+      <div class="form-actions mt">
+        <button class="btn btn-sm btn-primary" type="submit">保存正文</button>
+        {% if edited %}
+        <span class="small muted">当前显示的是你改过的版本</span>
+        {% endif %}
+      </div>
+    </form>
   </div>
   {% if notes %}
   <div class="card-foot no-print">
@@ -58,6 +74,6 @@
   {% endif %}
 </div>
 
-<textarea id="report-raw" class="hidden" readonly>{{ report.content_md }}</textarea>
+<textarea id="report-raw" class="hidden" readonly>{{ content }}</textarea>
 {% endif %}
 {% endblock %}
