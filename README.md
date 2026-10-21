@@ -50,7 +50,8 @@
       web/                 页面路由（pages，无前缀，Jinja2 渲染）
       templates/           base.html + 各页面 + partials/ 片段
       static/              app.css / app.js / htmx.min.js / settings.css
-    scripts/               backup.sh（VACUUM INTO 备份）、smoke_test.py（冒烟测试）
+    scripts/               backup.sh（VACUUM INTO 备份 + verify 校验）、restore.sh（恢复，默认 dry-run）、
+                           smoke_test.py（冒烟测试）
     Dockerfile  docker-compose.yml  .env.example  .dockerignore
 
 请求流：浏览器 → AuthMiddleware（可选口令）→ 页面路由（app/web/pages_*.py）→ 服务层 →
@@ -356,28 +357,122 @@ reminders_log，可在设置页与 /api/reminders/preview、/api/reminders/test 
 
 ## 10. 备份与恢复
 
+> 没做过恢复演练的备份，只能算「有一份文件」。所以本节三步全脚本化：**备份 → 验证 → 恢复**，
+> 而恢复脚本自己会先 `verify`，坏备份进不了线上库。
+
 ### 10.1 备份（在线、一致性快照）
 
     # 默认：./data/app.db → ./backup/app-YYYYmmdd-HHMMSS.db，保留最近 14 份
     scripts/backup.sh
 
     # NAS 上指定目录与保留份数
-    DATA_DIR=/volume1/docker/workbench/data \
-    BACKUP_DIR=/volume1/docker/workbench/backup \
+    DATA_DIR=/volume3/docker3/workbench/data \
+    BACKUP_DIR=/volume3/docker3/workbench/backup \
     KEEP=30 scripts/backup.sh
 
     # 群晖任务计划（每天 03:30）
-    # /volume1/docker/workbench/scripts/backup.sh >> /volume1/docker/workbench/backup/backup.log 2>&1
+    # /volume3/docker3/workbench/scripts/backup.sh >> /volume3/docker3/workbench/backup/backup.log 2>&1
 
 要点：
 
 - 使用 sqlite3 "VACUUM INTO '文件'"：单个读事务内的一致性快照，应用写入时也可安全执行，
   不需要停服（脚本顶部注释里说明了为什么默认不 sleep，以及 BACKUP_PRE_SLEEP 的用途）。
-- 备份后用 PRAGMA integrity_check 自检；非 ok 会在日志里 WARN。
-- 轮转按修改时间倒序，超过 KEEP（默认 14）份自动删除。
+- 备份后自己先做一次 PRAGMA integrity_check；非 ok 会在日志里 WARN。**WARN 不等于没事**，接着跑 10.2。
+- 轮转按修改时间倒序，超过 KEEP（默认 14）份自动删除。注意恢复前自动留存的
+  `app-before-restore-<时间>.db` 同样匹配 `app-*.db`，也计入 KEEP（见 10.4）。
+- 没有 sqlite3 命令行的环境（例如 Windows 开发机）自动回退到 python3 的 stdlib sqlite3，同一个引擎、同一个结果。
 - 容器内也已装 sqlite3，可 docker compose exec workbench bash scripts/backup.sh（注意 /data 挂载）。
 
-### 10.2 恢复（从一个 app.db 文件恢复）
+### 10.2 验证备份（这份文件到底能不能用来恢复）
+
+    scripts/backup.sh verify backup/app-20251020-033000.db
+
+    [2026-10-21 10:09:31] 校验备份：backup/app-20251020-033000.db
+      OK    文件存在且非空（159744 字节）
+      OK    SQLite 文件头
+      OK    PRAGMA integrity_check
+      关键表行数：
+        tasks     3 行
+        users     2 行
+        reports   1 行
+        routines  0 行
+    [2026-10-21 10:09:32] 校验通过：backup/app-20251020-033000.db
+
+四项检查，任何一项 FAIL 都退出码非 0，并说清楚失败原因：
+
+| 检查 | 拦的是什么 |
+| --- | --- |
+| 文件存在且非空 | 空文件、路径写错、只同步了目录没同步文件 |
+| SQLite 文件头（前 16 字节是 `SQLite format 3`） | 传半截的拷贝、误传的 tar/gz |
+| PRAGMA integrity_check == ok | 磁盘坏块导致的页级损坏 |
+| tasks / users / reports / routines 都在 | 拿了一个别的库，或缺表的半成品 |
+
+- 校验是「复制到临时目录再打开」，**备份原件全程只读**，不会在 backup/ 里留下 -wal / -shm。
+- 这里打印的行数是后面「恢复成功」的对照基准：恢复后的行数必须与它完全相同。
+
+### 10.3 恢复（一条命令，默认只预演）
+
+    # 1) DRY-RUN（不带 --yes）：先 verify，再打印将要执行的 5 步，一个文件都不动
+    DATA_DIR=/volume3/docker3/workbench/data \
+    COMPOSE_DIR=/volume3/docker3/workbench \
+    scripts/restore.sh backup/app-20251020-033000.db
+
+    # 2) 确认无误后真执行
+    DATA_DIR=/volume3/docker3/workbench/data \
+    COMPOSE_DIR=/volume3/docker3/workbench \
+    scripts/restore.sh backup/app-20251020-033000.db --yes
+
+不带 `--yes` 永远是 dry-run —— 手滑按不出一次恢复。真执行的顺序是固定的，中间任何一步失败都会
+打印原因并给出手工回退指引：
+
+1. **先 verify 备份**：不通过直接退出，一个文件都不改；
+2. 停容器：`docker compose -p workbench stop`；
+3. 留存现场：把当前 app.db 用 `VACUUM INTO` 存成 `backup/app-before-restore-<时间>.db`
+   （单文件一致性快照，不会留下半个 WAL；这一步失败就中止，绝不往下走）；
+4. 覆盖：删掉 `app.db-wal` / `app.db-shm`，把备份写成 `app.db.restoring` 再 `mv` 成 `app.db`
+   （同目录 rename，不会出现半个文件），以 root 执行时自动 `chown 10001:10001`；
+5. 起容器 `docker compose -p workbench up -d`，轮询 `http://127.0.0.1:15468/healthz` 直到 200，
+   最后打印恢复后的 tasks / users / reports / routines 行数。
+
+可覆盖的环境变量（括号内是默认值，即 NAS 实际布局）：
+
+| 变量 | 含义 |
+| --- | --- |
+| DATA_DIR | 数据目录（/volume3/docker3/workbench/data） |
+| COMPOSE_DIR | docker-compose.yml 所在目录（/volume3/docker3/workbench） |
+| BACKUP_DIR | 备份与现场快照目录（`$COMPOSE_DIR`/backup） |
+| COMPOSE_PROJECT / SERVICE | compose 项目名 / 服务名（workbench / workbench） |
+| PORT | 轮询 /healthz 用的宿主端口（15468） |
+| HEALTH_TIMEOUT / HEALTH_INTERVAL | 轮询窗口与间隔（90 秒 / 2 秒；单次探测最多 3 秒，实际墙钟会略长） |
+| OWNER | root 执行时 chown 的属主（10001:10001） |
+| COMPOSE_CMD | 容器编排命令（docker compose；演练时可用桩替身） |
+| PYTHON | 没有 sqlite3 命令行时使用的解释器 |
+
+演练过才敢写：本地用临时 DATA_DIR 造了 3 任务 / 2 用户 / 1 报告的库，备份后故意改成 8 任务 / 0 报告，
+再执行恢复——行数回到 3 / 2 / 1，`app.db` 与备份文件 sha256 一致；把备份截断一半后，
+`verify` 报 `database disk image is malformed`，`restore --yes` 直接拒绝且没碰容器。
+
+### 10.4 恢复失败怎么办
+
+| 失败点 | 现场状态 | 怎么办 |
+| --- | --- | --- |
+| verify 不通过 | 一个文件都没动 | 换一份备份；或用 DB Browser 手工修这份文件 |
+| 停容器失败 | 没动数据 | 检查 COMPOSE_DIR / COMPOSE_PROJECT，`docker compose ps` 看真实容器名 |
+| 留存现场失败 | 没动数据（脚本自己中止） | 多半是磁盘满或库被锁；先 `docker compose -p workbench stop` 再重试 |
+| 覆盖后 healthz 超时 | 已换库、容器在跑、**回退点保留** | 照脚本打印的回退指引做；同时 `docker compose logs workbench` 看应用为什么起不来 |
+| 起来但数据不对 | 已换库 | 用回退点恢复回去，再挑别的时间点重来 |
+
+回退点就是第 3 步存的那份 `backup/app-before-restore-<时间>.db`，放回去即可：
+
+    cd /volume3/docker3/workbench
+    docker compose -p workbench stop
+    rm -f data/app.db-wal data/app.db-shm
+    cp backup/app-before-restore-20251020-034512.db data/app.db
+    chown 10001:10001 data/app.db
+    docker compose -p workbench up -d
+    curl -fsS http://127.0.0.1:15468/healthz        # 期望 200
+
+手工兜底（脚本本身跑不起来时）：
 
     # 1) 停服务，避免半途写入
     docker compose stop workbench          # 本地运行则 Ctrl-C
@@ -399,10 +494,12 @@ reminders_log，可在设置页与 /api/reminders/preview、/api/reminders/test 
 
 注意：
 
-- 一定要同时删除 app.db-wal / app.db-shm，否则旧 WAL 可能覆盖恢复出来的数据。
+- 一定要同时删除 app.db-wal / app.db-shm，否则旧 WAL 可能覆盖恢复出来的数据（两个脚本都替你做了）。
 - 数据库属主必须与容器 uid 一致：chown -R 10001:10001 data。
 - 只想回滚某几条数据时，可以恢复到一个临时 DATA_DIR（DATA_DIR=/tmp/wb-tmp）后用
   sqlite3 / DB Browser 手工比对导出，再改回线上库。
+- 恢复前后各跑一次 `scripts/backup.sh verify`，把行数记进交付记录——这是「恢复成功」唯一可复核的证据。
+- 现场快照与备份同目录，文件名也匹配 `app-*.db`：确认没问题后再决定留几份，别让它把 KEEP 名额占满。
 
 ---
 

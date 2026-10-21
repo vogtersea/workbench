@@ -791,3 +791,32 @@ WAL 模式 + busy_timeout=5000 提供并发保障。
 - 回滚点：workbench:prev6；数据备份：backup/app-20261021-093130.db
 - 验证：9 页 200；/settings 11 path / 12 method 与拆分前一致；docx 导出 200；
   login_attempts 表与 reminder_lock 键就位；tasks=2 users=1 routines=0 reports=0 未变
+
+## 19. P2 改造记录与偏差（v0.3.0）
+
+### 19.1 W-10 execute() 显式返回类型
+
+方案给的三处判断在实测中被修正，均已固化为用例：
+
+1. 方案的片段只取 lastrowid/rowcount，对 INSERT ... RETURNING 会在 cursor() 收尾 commit 时抛
+   sqlite3.OperationalError: cannot commit transaction - SQL statements in progress（结果集未取空）。
+   实现改为按 cur.description 判断：有结果集则取空并以结果集为权威值。
+2. 方案估「约 12 处调用点」，全量审计 32 处 db.execute 后实际只有 8 处需要 returning_id=True。
+3. ON CONFLICT DO NOTHING 命中时 lastrowid 是上一次插入的残留值。实现用 rowcount==0 或
+   conn.total_changes 无增量判定「未插入」，返回 0；只有确认写入才读 lastrowid。
+   注意 rowcount 为 -1（WITH ... INSERT，CTE 写语句）不能按未插入处理，否则插入成功却返回 0。
+
+### 19.2 W-12 备份验证与恢复
+
+1. 无 sqlite3 命令行时回退 python stdlib sqlite3（同引擎，PRAGMA 结果一致）；CI 仍优先用 CLI。
+2. verify 先把备份 cp 到 mktemp 目录再打开：原件只读，且备份目录不会留下 -wal/-shm。
+3. 停/起容器用 compose -p workbench stop / up -d workbench，不用 start——容器被重建后 start 会失败。
+4. 留存现场用 VACUUM INTO 而非 cp：停服后 WAL 里可能还有未合并页，只 cp 主库会丢最近的写入。
+5. 新增 COMPOSE_CMD 环境变量（默认 docker compose），用于演练替身与 podman 兼容。
+6. verify 要求 tasks/users/reports/routines 四表齐备，缺一即失败（严格方向）。
+7. 轮转只匹配 app-[0-9]*.db：restore.sh 产出的 app-before-restore-*.db 是救命快照，
+   以及人工留的副本，永不自动删除（本条为协调者复核时追加）。
+
+演练结论（协调者独立复跑，非子代理自述）：种子 3 任务/2 用户/1 报告 -> 备份 -> 破坏成 8/2/0
+-> verify 通过并读回 3/2/1 -> dry-run 不改文件不调 compose -> --yes 恢复后 app.db 与备份 sha256 完全一致、
+行数回到 3/2/1、现场快照留存 -> 截断备份 verify 与 restore 均退出 1 且库与 compose 调用数未变。
