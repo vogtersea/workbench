@@ -28,7 +28,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-#: 只放「与任何机构无关」的通用公文流转词；具体名称写进 .privacy-terms.txt
+#: 只放「与任何机构无关」的通用公文流转词。
+#: 机构名、部门名、地名、文件名一律写进 .privacy-terms.txt（已 gitignore）——
+#: 把具体名称写进这里，等于扫描器自己成了泄露源。
 DEFAULT_TERMS = (
     "拟稿人",
     "审核人",
