@@ -35,7 +35,18 @@
     btn.setAttribute("aria-pressed", dark ? "true" : "false");
   }
 
+  // ?theme=dark|light 可强制主题（截图、嵌入、系统不支持深色的设备都用得上）
+  function applyUrlParam() {
+    var m = /[?&]theme=(dark|light)\b/.exec(window.location.search);
+    if (m) {
+      apply(m[1]);
+      return true;
+    }
+    return false;
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    applyUrlParam();
     var btn = document.getElementById("theme-toggle");
     if (btn) {
       btn.addEventListener("click", function () {
