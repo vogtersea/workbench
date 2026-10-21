@@ -8,7 +8,7 @@
 <https://github.com/vogtersea/workbench/releases/latest>
 
 - Workbench-Setup.exe —— 安装包（按用户安装，不需要管理员）
-- Workbench-portable-v1.0.0.zip —— 解压即用
+- Workbench-portable-v1.0.x.zip —— 解压即用（x 为当前版本号）
 - SHA256SUMS.txt —— 校验和
 
 ## 构建
