@@ -148,7 +148,11 @@
     def cursor() -> Iterator[sqlite3.Connection]
     def query(sql, params=()) -> list[sqlite3.Row]
     def one(sql, params=()) -> sqlite3.Row | None
-    def execute(sql, params=()) -> int    # lastrowid 或 rowcount
+    def execute(sql, params=(), *, returning_id: bool = False) -> int
+                                          # 显式声明返回类型（W-10，v0.3.0 起）：
+                                          #   returning_id=True -> 新行 id（未插入则 0）
+                                          #   默认 -> 受影响行数 rowcount
+                                          # 不再按 SQL 首词猜测；语句自带 RETURNING 时以结果集为权威值
     def init_db() -> None                 # 幂等建表 + 默认 settings
 
 ### app/timeutil.py

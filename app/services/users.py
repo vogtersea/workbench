@@ -132,6 +132,7 @@ def create_user(
         "INSERT INTO users(username, display_name, password_hash, role, active, created_at) "
         "VALUES(?,?,?,?,1,?)",
         (uname, (display_name or "").strip() or uname, auth.hash_password(raw), role_value, timeutil.now_iso()),
+        returning_id=True,
     )
 
 
@@ -399,6 +400,7 @@ def create_invite(
         "INSERT INTO invites(code, note, created_by, max_uses, used_count, expires_at, created_at) "
         "VALUES(?,?,?,?,0,?,?)",
         (code, (note or "").strip()[:200], created_by, uses, expires_at, timeutil.now_iso()),
+        returning_id=True,
     )
     return {"id": invite_id, "code": code, "max_uses": uses, "expires_at": expires_at}
 

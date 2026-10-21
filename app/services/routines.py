@@ -425,6 +425,7 @@ def create_routine(data: dict, *, owner_id: int | None = None) -> int:
             now,
             now,
         ),
+        returning_id=True,
     )
 
 
@@ -628,6 +629,7 @@ def _insert_instance(payload: dict) -> int:
             payload["routine_id"],
             payload["period_key"],
         ),
+        returning_id=True,
     )
 
 

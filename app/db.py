@@ -250,13 +250,32 @@ def one(sql: str, params=()) -> sqlite3.Row | None:
         return conn.execute(sql, params).fetchone()
 
 
-def execute(sql: str, params=()) -> int:
-    """写语句：INSERT/REPLACE 返回 lastrowid，其余返回受影响行数。"""
-    verb = (sql.lstrip().split(None, 1) or [""])[0].upper()
+def execute(sql: str, params=(), *, returning_id: bool = False) -> int:
+    """写语句：returning_id=True 返回新行 id，默认返回受影响行数（W-10）。
+
+    返回类型由调用点显式声明，不再按 SQL 首词猜测：`INSERT ... RETURNING`、`WITH ... INSERT`
+    这类写法的首词不可靠，猜错会静默取到行数或上一次插入残留的 id。
+    returning_id=True 只在确实插入了行时才有 id 可给，其余情形一律返回 0，绝不回落 lastrowid：
+
+    - 带 RETURNING：结果集是权威值，先取空再判定（不取空的话收尾 commit 会报
+      "SQL statements in progress"）；没有返回行说明没插入，返回 0。
+    - 不带 RETURNING：rowcount 为 0 说明没插入（`ON CONFLICT DO NOTHING` / `OR IGNORE`
+      命中），返回 0；rowcount 为负说明 SQLite 不统计该写法（`WITH ... INSERT` 实测 -1），
+      此时改看连接级 total_changes 增量：没变就是没写入，返回 0。只有确认写入才读 lastrowid。
+
+    UPDATE / DELETE 不要传 returning_id（它们的口径是受影响行数）。
+    """
     with cursor() as conn:
+        before = conn.total_changes
         cur = conn.execute(sql, params)
-        value = cur.lastrowid if verb in {"INSERT", "REPLACE"} else cur.rowcount
-        return int(value or 0)
+        rows = cur.fetchall() if cur.description is not None else None
+        if not returning_id:
+            return int(cur.rowcount or 0)
+        if rows is not None:
+            return int(rows[0][0] or 0) if rows else 0
+        if cur.rowcount == 0 or conn.total_changes == before:
+            return 0
+        return int(cur.lastrowid or 0)
 
 
 def _ensure_owner_columns() -> list[str]:

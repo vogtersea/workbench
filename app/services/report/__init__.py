@@ -145,6 +145,7 @@ async def generate(
             timeutil.now_iso(),
             None if owner_id is None else int(owner_id),
         ),
+        returning_id=True,
     )
     if not rid:
         raise ReportError("报告正文已生成，但写入数据库失败")

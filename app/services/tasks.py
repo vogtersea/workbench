@@ -258,6 +258,7 @@ def create_task(data: dict, *, owner_id: int | None = None) -> int:
             now,
             _owner_value(owner_id),
         ),
+        returning_id=True,
     )
 
 
@@ -347,6 +348,7 @@ def add_progress(
     pid = db.execute(
         "INSERT INTO progress_entries(task_id, content, link, created_at) VALUES(?, ?, ?, ?)",
         (int(task_id), text, (str(link).strip() or None) if link else None, now),
+        returning_id=True,
     )
     clause, extra = _owner_clause(owner_id, alias="")
     db.execute(
@@ -542,6 +544,7 @@ def create_project(name, description="", color="#6366f1", *, owner_id: int | Non
                 now,
                 _owner_value(owner_id),
             ),
+            returning_id=True,
         )
     except sqlite3.IntegrityError:
         # projects.name 全库唯一（SPEC 第 4 节 DDL），同名项目已被他人占用时给同样的可读错误
