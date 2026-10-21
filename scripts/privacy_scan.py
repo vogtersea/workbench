@@ -120,7 +120,8 @@ def scan_history(terms: list[str]) -> list[str]:
     for term in terms:
         try:
             out = subprocess.run(
-                ["git", "log", "--all", "-S" + term, "--oneline"], cwd=ROOT, capture_output=True,
+                ["git", "log", "--all", "-S" + term, "--oneline", "--", ".",
+                 ":(exclude)scripts/privacy_scan.py"], cwd=ROOT, capture_output=True,
                 text=True, encoding="utf-8", errors="replace", timeout=60,
             )
             commits = [line for line in (out.stdout or "").splitlines() if line.strip()]
