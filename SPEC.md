@@ -753,3 +753,37 @@ WAL 模式 + busy_timeout=5000 提供并发保障。
 
 失败次数落库到 login_attempts（username + source + at，5 次 / 5 分钟窗口），
 重启不清零、多 worker 一致；每次记录顺带清理过期行，随机用户名不会撑大内存。
+
+## 18. P1 改造记录与偏差（v0.2.0）
+
+### 18.1 W-08 拆分：与方案文件清单的偏差
+
+方案 W-08 给出的文件清单是**估算**，实测体量装不下，故按「单文件 ≤ 400 行」这一目标调整：
+
+| 域 | 方案清单 | 实际清单 | 实际行数 | 偏差原因 |
+|---|---|---|---|---|
+| settings | __init__/general/llm/webhook/users（5） | 另加 shared、llm_context、vault（8） | 19/96/49/164/357/202/313/131 | 原文件有效代码 1176 行；users 域在本文件里只有权限判定（49 行）、webhook 只有 131 行，两域装不满；general+llm 合计 1012 行，无法塞进 2×400 |
+| report | __init__/collect/prompt/render（4） | 一致 | 207/307/310/307 | 无偏差。generate 与落库留在 __init__，render 只负责渲染 |
+| obsidian | 方案未列 | obsidian.py 门面 + vault/index/search | 36/353/376/268 | 937 行塞不进 1 个模块；按目录层/索引层/检索层三拆，依赖为单向 |
+
+### 18.2 拆分中的三处结构性发现
+
+1. **权限层与渲染骨架存在真实循环依赖**：写权限校验调用 403 页渲染，而渲染骨架所在模块的写路由又要权限校验。
+   解法是把渲染函数的 import 放进 403 处理函数体内（全仓唯一一处 AST 差异，行为等价）。
+   彻底消环需要把「403 页渲染」从渲染骨架中抽出，属改逻辑，留给后续。
+2. **logger 名字是隐性契约**：三个原模块的 getLogger(__name__) 名字（app.services.reports / app.services.obsidian /
+   app.web.pages_settings）被保留为显式常量，避免线上日志过滤与告警规则静默失效。
+3. **obsidian.py 是稳定门面而非兼容层**：pages/routes/templating/report 域都通过它取符号，三个子模块只被它引用。
+
+### 18.3 W-07 的一处方案偏差
+
+方案写 record_failure 返回 0，但调用方 pages_auth.py 把它当作「窗口内第几次失败」，用于提示文案与当次 429 判定。
+判定：方案的 return 0 是无意义占位，调用方的计数语义才是真契约，故改为在单事务内 INSERT → 清理过期行 → 返回计数。
+结果：第 5 次失败当次即返回 429，提示不再出现「第 0 次」。
+
+### 18.4 部署记录
+
+- 时点：2026-10-21；接入方式：外网 IPv6（2408:821a:e139:8c0:dc53:1ff8:557:f214）
+- 回滚点：workbench:prev6；数据备份：backup/app-20261021-093130.db
+- 验证：9 页 200；/settings 11 path / 12 method 与拆分前一致；docx 导出 200；
+  login_attempts 表与 reminder_lock 键就位；tasks=2 users=1 routines=0 reports=0 未变
