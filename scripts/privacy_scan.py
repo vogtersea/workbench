@@ -117,10 +117,14 @@ def scan_files(files: list[Path], terms: list[str]) -> list[str]:
 def scan_history(terms: list[str]) -> list[str]:
     hits = []
     for term in terms:
-        out = subprocess.run(
-            ["git", "log", "--all", "-S" + term, "--oneline"], cwd=ROOT, capture_output=True, text=True
-        )
-        commits = [line for line in out.stdout.splitlines() if line.strip()]
+        try:
+            out = subprocess.run(
+                ["git", "log", "--all", "-S" + term, "--oneline"], cwd=ROOT,
+                capture_output=True, text=True, timeout=60,
+            )
+            commits = [line for line in (out.stdout or "").splitlines() if line.strip()]
+        except (OSError, subprocess.SubprocessError):
+            commits = []
         if commits:
             hits.append("历史中有 %d 个提交含「%s」" % (len(commits), term))
     return hits
