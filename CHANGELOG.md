@@ -3,9 +3,41 @@
 格式：每个版本记录「改了什么 / 影响哪些接口 / 是否需要迁移」。
 一类改动一个提交，提交信息用 type(scope): 摘要；每个 P 阶段结束打一个语义化 tag。
 
+## [v0.3.0] — 2026-10-21
+
+P2：把「返回值靠猜」与「备份没验证过」两个隐患清掉。
+
+**改了什么**
+
+- W-10 execute() 显式返回类型：签名改为 execute(sql, params, *, returning_id=False)。
+  全量审计 32 处调用点，8 处「返回值当新行 id 用」的 INSERT 显式声明 returning_id=True。
+  返回值判定改用运行期属性（结果集 / rowcount / total_changes），不再按 SQL 首词猜测：
+    INSERT ... RETURNING 以结果集为权威值（不取空会抛 SQL statements in progress）
+    ON CONFLICT DO NOTHING 命中时返回 0，不再回落到上一次插入残留的 lastrowid
+    WITH ... INSERT（rowcount 为 -1）仍能拿到真实 id
+- W-12 备份验证与恢复：
+    backup.sh verify <备份>：文件头 / PRAGMA integrity_check / 四表行数，缺表即失败
+    restore.sh <备份>：默认 dry-run，--yes 才执行；执行前强制 verify；五步走
+      （停容器 -> VACUUM INTO 留现场 -> 清 WAL + 原子替换 -> up -d 等 healthz -> 复核行数）
+      失败时打印原因 + 照抄式回退指引
+    轮转 glob 收窄为 app-[0-9]*.db：app-before-restore-*.db 等救命快照永不自动删除
+- 演练结论：3 任务/2 用户/1 报告 -> 备份 -> 破坏成 8/2/0 -> 恢复后与备份 sha256 完全一致、行数回到 3/2/1；
+  截断备份 verify 与 restore 均拒绝且库未被改动。
+
+**影响哪些接口**
+
+- db.execute 签名变更（新增仅关键字参数），不传 returning_id 时行为与旧版一致（返回 rowcount）
+- 若你有外部脚本依赖旧版「按首词猜测」的返回类型，需要显式声明 returning_id=True
+- 新增运维脚本 scripts/restore.sh；backup.sh 增加 verify 子命令，原有备份用法不变
+- HTTP 接口零变化
+
+**是否需要迁移**
+
+- 无需迁移。不影响数据库结构。
+
 ## [未发布]
 
-（下一阶段：P2 的 W-10 显式返回类型、W-11 报告二次编辑、W-12 备份恢复演练。）
+（方案剩余项：W-11 报告页内二次编辑。W-10 / W-12 已随 v0.3.0 发布。）
 
 ## [v0.2.0] — 2026-10-21
 
