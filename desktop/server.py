@@ -91,6 +91,10 @@ def start(data_dir: Path, port: int = 0, *, host: str = "127.0.0.1", timeout: fl
 
     chosen = int(port) if port and port_free(int(port)) else pick_port()
     application = create_app()
+    # log_config=None：不让 uvicorn 调 logging.config.dictConfig。
+    # 打包后（PyInstaller 窗口程序）它的默认配置依赖 uvicorn.logging -> click 的导入链，
+    # 一旦该链路在用户机器上缺失或被拦截，就会抛 "Unable to configure formatter 'default'"。
+    # 日志我们已经用 basicConfig + 文件处理器接管了，这里让 uvicorn 只干活不碰 logging。
     config = uvicorn.Config(
         application,
         host=host,
@@ -98,6 +102,7 @@ def start(data_dir: Path, port: int = 0, *, host: str = "127.0.0.1", timeout: fl
         log_level="warning",
         access_log=False,
         lifespan="on",
+        log_config=None,
     )
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, name="workbench-http", daemon=True)

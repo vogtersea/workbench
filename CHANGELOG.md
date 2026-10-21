@@ -83,6 +83,31 @@ W-11：报告页内二次编辑（方案 P2 最后一项）。
 
 - 无需迁移：桌面版首次启动会新建空库；若指向已有 NAS 数据目录，直接复用同一份 app.db。
 
+## [v1.0.1] — 2026-10-21
+
+桌面版修复：安装后启动失败（Unable to configure formatter 'default'），以及打包态默认数据目录错误。
+
+**改了什么**
+
+- desktop/server.py：uvicorn.Config 传 log_config=None。uvicorn 默认会调 logging.config.dictConfig
+  并解析 uvicorn.logging.DefaultFormatter（该模块 import click）；打包成窗口程序后这条链一旦在用户机器上
+  缺失或被安全软件拦截，就会抛 ValueError: Unable to configure formatter 'default'，
+  并被我们包装成「本地服务启动失败」。日志本就由 basicConfig + 文件处理器接管，不需要 uvicorn 插手。
+- desktop/firstrun.py：默认数据目录改用 sys.executable。打包后 __file__ 指向 PyInstaller 临时解包目录
+  （退出即删），原先的算法会把「默认数据目录」建议成一次性目录，用户接受就等于把数据写进临时目录。
+- workbench-desktop.spec：显式补 click、uvicorn.logging/config/server、lifespan.on、h11_impl
+  等 hiddenimports 作为双保险。
+- tests/test_desktop_server.py：新增回归测试，把 logging.config.dictConfig 换成抛异常，
+  断言服务仍能启动——去掉修复该用例立刻失败（已实证）。
+
+**影响哪些接口**
+
+- 无对外接口变化；仅桌面壳内部启动路径变化。
+
+**是否需要迁移**
+
+- 无需迁移。若旧版已经把数据目录选到了临时目录，换到新版后重选一次正式目录即可（旧目录内容会随系统清理消失）。
+
 ## [未发布]
 
 （方案剩余项：W-11 报告页内二次编辑。W-10 / W-12 已随 v0.3.0 发布。）

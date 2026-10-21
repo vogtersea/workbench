@@ -6,4 +6,4 @@
 - 桌面能力通过 app/services/desktop_bridge.py 注入，服务器版完全不受影响。
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"

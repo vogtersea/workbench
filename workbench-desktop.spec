@@ -13,6 +13,12 @@ hiddenimports += collect_submodules("uvicorn")          # loop/protocol/lifespan
 hiddenimports += collect_submodules("apscheduler")      # 调度器触发器同样是动态导入
 hiddenimports += collect_submodules("markdown")
 hiddenimports += [
+    "click",                     # uvicorn.logging 依赖 click；窗口程序下缺失会报 formatter 配置失败
+    "uvicorn.logging",
+    "uvicorn.config",
+    "uvicorn.server",
+    "uvicorn.lifespan.on",
+    "uvicorn.protocols.http.h11_impl",
     "webview.platforms.winforms",
     "webview.platforms.edgechromium",
     "clr",                       # pythonnet：pywebview 的 Windows 后端依赖

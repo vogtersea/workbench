@@ -7,15 +7,24 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 def default_data_dir() -> Path:
-    """默认数据目录：可执行文件同目录的 data\\（便携版语义）。"""
-    base = Path(os.environ.get("WB_PROGRAM_DIR") or Path(__file__).resolve().parent.parent)
-    return base / "data"
+    """默认数据目录：可执行文件同目录的 data\\（便携版语义）。
+
+    打包后必须用 sys.executable 定位：PyInstaller 会把 __file__ 指到临时解包目录（_MEIPASS），
+    那里程序退出即删除——若把默认目录定在那儿，用户一选就等于把数据写进一次性目录。
+    """
+    override = os.environ.get("WB_PROGRAM_DIR")
+    if override:
+        return Path(override) / "data"
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "data"
+    return Path(__file__).resolve().parent.parent / "data"
 
 
 def ask_directory(title: str, initial: Path | None = None) -> str | None:
