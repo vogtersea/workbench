@@ -57,6 +57,32 @@ W-11：报告页内二次编辑（方案 P2 最后一项）。
 
 - 无需手工迁移：应用启动时 init_db() 检测到缺列会自动 ALTER TABLE 补上，既有报告 content_md_edited 为 NULL，行为与以前一致。
 
+## [v1.0.0] — 2026-10-21
+
+桌面版（Windows）：不依赖 Docker、不需要服务器的原生窗口客户端。
+
+**改了什么**
+
+- 新增 desktop/ 桌面壳：pywebview + WebView2 窗口，进程内起本地服务（仅监听 127.0.0.1）
+- 首次启动弹窗选择数据目录；设置页新增「桌面应用」一节，托盘菜单同步提供
+- 关窗最小化到托盘（定时扫描继续跑）、开机自启（写 HKCU Run，无需管理员）、
+  每日提醒弹 Windows 系统通知、数据目录切换（弹窗二选一：迁移 / 空库开始）
+- 桌面能力通过 app/services/desktop_bridge.py 注入；服务器版没有后端时相关接口一律 404、
+  设置页不渲染该节，NAS 部署行为完全不变
+- 打包：PyInstaller onedir + Inno Setup 安装包（按用户安装，不需要管理员）
+
+**影响哪些接口**
+
+- 新增桌面专属接口 /api/desktop/state、/api/desktop/prefs、/api/desktop/data-dir（仅桌面版可用）
+- 新增设置页路由 POST /settings/desktop、/settings/desktop/data-dir、/settings/desktop/restart
+- 新增环境变量 WB_DESKTOP（桌面壳自动设置）
+- 新增依赖文件 requirements-desktop.txt（服务器部署不需要）
+- 其余接口与数据库结构零变化
+
+**是否需要迁移**
+
+- 无需迁移：桌面版首次启动会新建空库；若指向已有 NAS 数据目录，直接复用同一份 app.db。
+
 ## [未发布]
 
 （方案剩余项：W-11 报告页内二次编辑。W-10 / W-12 已随 v0.3.0 发布。）

@@ -820,3 +820,57 @@ WAL 模式 + busy_timeout=5000 提供并发保障。
 演练结论（协调者独立复跑，非子代理自述）：种子 3 任务/2 用户/1 报告 -> 备份 -> 破坏成 8/2/0
 -> verify 通过并读回 3/2/1 -> dry-run 不改文件不调 compose -> --yes 恢复后 app.db 与备份 sha256 完全一致、
 行数回到 3/2/1、现场快照留存 -> 截断备份 verify 与 restore 均退出 1 且库与 compose 调用数未变。
+
+## 20. 桌面版（Windows）架构与裁决（v1.0.0）
+
+### 20.1 形态选择
+
+在「pywebview 桌面壳 / Qt 原生重写 / 托盘+浏览器」三者中选定 pywebview 壳：
+
+- 复用 12k 行后端与 40 个模板，功能零差异；
+- 本机 WebView2 运行时已存在（155.x），无需用户额外安装；
+- Qt 重写需要把 40 个模板与全部交互用控件重做，工期与回归风险高一个数量级。
+
+代价（已向用户说明并接受）：界面仍是 HTML 渲染，不是 Win32 原生控件。
+
+### 20.2 进程与启动顺序
+
+1. 单实例：Windows 命名互斥体 WorkbenchDesktop.SingleInstance，重复启动只提示不起进程；
+2. 首次启动：tkinter 目录选择框确定数据目录，写入 %APPDATA%WorkbenchDesktopprefs.json；
+3. **先设环境变量再导入 app**：app.config 在导入期单例化读取 DATA_DIR / WB_DESKTOP；
+4. uvicorn 在后台线程跑，只绑 127.0.0.1，端口优先用偏好里的固定值，被占用则让系统分配；
+5. 开窗口前轮询 /healthz 直到 200，避免白屏；
+6. 注入 desktop_bridge 后端（状态/偏好/数据目录/重启/系统通知）；
+7. 启动托盘，最后 webview.start()。
+
+### 20.3 桌面能力的隔离方式
+
+桌面能力不写进业务代码分支，而是通过 app/services/desktop_bridge.py 的可注册后端：
+
+- 桌面壳启动时 set_backend() + set_notifier()；
+- 服务器版没有后端：/api/desktop/* 与 /settings/desktop 一律 404，设置页 desktop 标志为 False，整块不渲染；
+- 每日提醒在 send_daily() 末尾调用 desktop_bridge.notify()，服务器版是 no-op。
+
+### 20.4 数据目录切换
+
+用户明确要求「弹窗二选一」，故：
+
+- 设置页：文本框 + 单选（迁移 / 空库），普通 form POST，无 JS；
+- 托盘菜单：原生目录选择框 + 是/否询问；
+- 迁移实现：复制 app.db 到目标目录的 app.db.migrating，PRAGMA integrity_check 通过后才 rename 到位；
+  失败就删临时文件、不动现有数据；旧目录一律保留；切换后需重启（页面给「立即重启」按钮）。
+
+### 20.5 打包
+
+- PyInstaller onedir（启动 1–2 秒；onefile 冷启动要多 3–5 秒）；
+- 模板与静态资源作为 datas 打进 app/templates、app/static；hiddenimports 补 uvicorn / apscheduler 的
+  动态导入、pywebview 的 winforms/edgechromium 后端、pythonnet(clr)、pystray._win32、tkinter；
+- 安装包用 Inno Setup 6，PrivilegesRequired=lowest（装到 %LOCALAPPDATA%Programs，不需要管理员）；
+  中文语言包随仓库携带（installer/languages/ChineseSimplified.isl，取自 Inno Setup 官方 issrc）。
+
+### 20.6 实测
+
+- 源码运行：服务就绪、托盘启动、WebView2 窗口加载页面（日志出现真实 HTTP 请求）；
+- 打包 exe：同样三条均成立，进程常驻，数据目录正确初始化；
+- 安装包：ISCC 编译成功，产出 dist/Workbench-Setup.exe（29 MB）；
+- 测试：桌面偏好/桥接/接口三层共 18 个用例，全量 pytest 72 passed。

@@ -683,3 +683,26 @@ Q8. 想清空重来？
 
 打开端缺少上述字体时，Word / WPS 会自动回退到系统默认字体：内容与版式参数（页边距、行距、缩进）不受影响，只有字形会变。
 Windows 一般自带「仿宋」「黑体」「楷体」；名字带 _GB2312 的版本多见于旧版 Office 或公文排版环境。
+
+---
+
+## 16. 桌面版（Windows，不需要 Docker）
+
+同一套业务代码与模板，多了一个桌面壳：本地起服务（只监听 127.0.0.1）+ WebView2 窗口 + 系统托盘。
+
+    # 构建
+    .venv/Scripts/python.exe -m pip install -r requirements-desktop.txt
+    bash scripts/build_desktop.sh
+
+    # 产物
+    dist/Workbench/Workbench.exe     # 免安装目录版
+    dist/Workbench-Setup.exe         # 安装包（按用户安装，不需要管理员）
+
+首次启动弹窗选择数据目录；之后可在设置页「桌面应用」一节或托盘菜单里改。
+
+桌面专属：关窗最小化到托盘（定时提醒继续跑）、开机自启、系统通知、数据目录切换（弹窗二选一：
+迁移或空库开始，迁移会做 integrity_check 校验且旧目录保留）。
+
+日志在 %APPDATA%\WorkbenchDesktop\logs\desktop.log，偏好在其上一层 prefs.json。
+详细说明见 desktop/README.md。桌面能力通过 app/services/desktop_bridge.py 注入，
+服务器/NAS 版没有注入后端，桌面接口一律 404、设置页不显示该节，行为完全不变。
