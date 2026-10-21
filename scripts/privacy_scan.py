@@ -66,14 +66,15 @@ def load_terms() -> list[str]:
 
 
 def tracked_files() -> list[Path]:
-    out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True)
+    out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
     return [ROOT / line for line in out.stdout.splitlines() if line.strip()]
 
 
 def staged_files() -> list[Path]:
     out = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-        cwd=ROOT, capture_output=True, text=True,
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     return [ROOT / line for line in out.stdout.splitlines() if line.strip()]
 
@@ -119,8 +120,8 @@ def scan_history(terms: list[str]) -> list[str]:
     for term in terms:
         try:
             out = subprocess.run(
-                ["git", "log", "--all", "-S" + term, "--oneline"], cwd=ROOT,
-                capture_output=True, text=True, timeout=60,
+                ["git", "log", "--all", "-S" + term, "--oneline"], cwd=ROOT, capture_output=True,
+                text=True, encoding="utf-8", errors="replace", timeout=60,
             )
             commits = [line for line in (out.stdout or "").splitlines() if line.strip()]
         except (OSError, subprocess.SubprocessError):
