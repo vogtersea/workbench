@@ -1,0 +1,88 @@
+{# 桌面应用设置（仅桌面版渲染；服务器版 desktop 为 False，整块不出现）。 #}
+{% if desktop %}
+<div class="card" id="desktop">
+  <div class="card-head">
+    <h2 class="card-title">桌面应用</h2>
+    <div class="report-meta">
+      {% if desktop_state.version %}<span class="mono nowrap">v{{ desktop_state.version }}</span>{% endif %}
+      {% if desktop_state.port %}<span class="mono nowrap">127.0.0.1:{{ desktop_state.port }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+
+    {% if request.query_params.get('desktop_saved') %}
+    <div class="alert alert-ok">桌面设置已保存。</div>
+    {% elif request.query_params.get('desktop_restart') %}
+    <div class="alert alert-warn">
+      数据目录已切换，<strong>需要重启应用才生效</strong>。
+      <form method="post" action="/settings/desktop/restart" class="inline-form">
+        <button class="btn btn-sm btn-primary" type="submit">立即重启</button>
+      </form>
+    </div>
+    {% elif request.query_params.get('desktop_error') %}
+    <div class="alert alert-danger">操作失败，请看一眼日志或换个目录再试。</div>
+    {% endif %}
+
+    <dl class="kv">
+      <dt>数据目录</dt>
+      <dd class="mono">{{ desktop_state.data_dir or "（未设置）" }}</dd>
+      <dt>启动方式</dt>
+      <dd>{{ desktop_state.launch_mode or "—" }}
+        {% if desktop_state.autostart %}<span class="badge badge-live">已加入开机启动</span>
+        {% else %}<span class="badge badge-muted">未加入开机启动</span>{% endif %}
+      </dd>
+    </dl>
+
+    <form method="post" action="/settings/desktop" class="form">
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" name="close_to_tray" value="1" {% if desktop_state.close_to_tray %}checked{% endif %}>
+          点关闭按钮时最小化到托盘（保持后台定时扫描，提醒才能触发）
+        </label>
+      </div>
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" name="autostart" value="1" {% if desktop_state.autostart %}checked{% endif %}>
+          开机自动启动（只写当前用户的启动项，不需要管理员权限）
+        </label>
+      </div>
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" name="notify" value="1" {% if desktop_state.notify %}checked{% endif %}>
+          每日提醒弹 Windows 系统通知（点通知可回到工作台）
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-sm btn-primary" type="submit">保存桌面设置</button>
+      </div>
+    </form>
+
+    <hr class="sep">
+
+    <form method="post" action="/settings/desktop/data-dir" class="form">
+      <div class="field">
+        <label class="field-label" for="desktop-data-dir">更改数据目录（数据库与配置所在文件夹）</label>
+        <input class="input" id="desktop-data-dir" name="path" placeholder="例如 D:\WorkbenchData" autocomplete="off">
+        <div class="field-hint">目录不存在会自动创建。切换后需要重启应用生效。</div>
+      </div>
+      <div class="field">
+        <label class="radio">
+          <input type="radio" name="mode" value="migrate" checked>
+          迁移过去（把现有 app.db 复制到新目录，旧目录保留不删）
+        </label>
+        <label class="radio">
+          <input type="radio" name="mode" value="empty">
+          新目录从空库开始（旧数据留在原处，你自己保管）
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-sm" type="submit">切换数据目录</button>
+      </div>
+    </form>
+
+  </div>
+  <div class="card-foot">
+    <span class="small muted">托盘菜单里也能改这几项；数据目录切换失败不会动现有数据。</span>
+  </div>
+</div>
+{% endif %}

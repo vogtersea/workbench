@@ -99,6 +99,8 @@ class Settings:
     secure_cookie: bool = False
     # docx 导出总开关（W-01）；关闭后导出路由 404、页面不显示按钮
     export_docx: bool = True
+    # 桌面版（pywebview 壳）标志：由桌面入口设置 WB_DESKTOP=1
+    desktop: bool = False
 
     @property
     def db_path(self) -> Path:
@@ -139,6 +141,7 @@ def load_settings() -> Settings:
         port=_int("PORT", 8080),
         secure_cookie=_flag("SECURE_COOKIE", False),
         export_docx=_flag("EXPORT_DOCX", True),
+        desktop=_flag("WB_DESKTOP", False),
     )
 
 

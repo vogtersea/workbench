@@ -24,6 +24,7 @@ from app.api import (
     routes_settings,
     routes_tasks,
 )
+from app.api import routes_desktop
 from app.config import APP_DIR
 from app.web import (
     pages_auth,
@@ -32,6 +33,7 @@ from app.web import (
     pages_routines,
     pages_tasks,
 )
+from app.web import pages_desktop
 from app.web.settings import router as settings_router
 
 logger = logging.getLogger("app.main")
@@ -162,6 +164,8 @@ def create_app() -> FastAPI:
     app.include_router(routes_reports.router, prefix="/api", tags=["reports"])
     app.include_router(routes_settings.router, prefix="/api", tags=["settings"])
     app.include_router(routes_obsidian.router, prefix="/api", tags=["obsidian"])
+    # 桌面壳专用接口：非桌面进程没有注入 backend，访问一律 404（SPEC 第 20 章）
+    app.include_router(routes_desktop.router, prefix="/api", tags=["desktop"])
 
     # 页面路由不加前缀，路径即 SPEC 第 6 节的页面路径。
     app.include_router(pages_auth.pages)
@@ -170,6 +174,7 @@ def create_app() -> FastAPI:
     app.include_router(pages_reports.pages)
     app.include_router(settings_router)
     app.include_router(pages_obsidian.pages)
+    app.include_router(pages_desktop.pages)
 
     # 阶段一占位：pages_tasks 提供真实仪表盘后，先注册的同路径路由会自动遮蔽本占位，
     # 无需改动 main.py。

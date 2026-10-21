@@ -177,7 +177,13 @@ def status_context() -> dict[str, Any]:
 
 def render(request: Request, name: str, *, status_code: int = 200, **context: Any):
     """渲染模板并注入公共上下文。"""
+    from app.services import desktop_bridge
+
     ctx: dict[str, Any] = status_context()
+    # 桌面版才显示「桌面应用」设置节；服务器版为 False，页面完全不受影响
+    ctx.setdefault(
+        "desktop", bool(getattr(settings, "desktop", False)) or desktop_bridge.available()
+    )
     ctx.update(context)
     ctx["request"] = request
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)

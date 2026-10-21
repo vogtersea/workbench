@@ -513,8 +513,29 @@ def _summary(*, sent_at: str, channel: str, ok: bool, error: str | None,
 def send_daily() -> dict[str, Any]:
     """users 表非空（多用户）走合并日报，否则逐字保持改造前的单用户流程。"""
     if security.users_exist():
-        return _send_daily_multi()
-    return _send_daily_single()
+        result = _send_daily_multi()
+    else:
+        result = _send_daily_single()
+    _notify_desktop(result)
+    return result
+
+
+def _notify_desktop(result: dict[str, Any]) -> None:
+    """桌面版：有提醒项时弹一条系统通知。服务器版没注册 notifier，这里是 no-op。"""
+    try:
+        from app.services import desktop_bridge
+
+        if not result.get("has_items"):
+            return
+        counts = result.get("counts") or {}
+        body = "逾期 %s / 今日 %s / 临期 %s" % (
+            counts.get("overdue", 0),
+            counts.get("today", 0),
+            counts.get("soon", 0),
+        )
+        desktop_bridge.notify("工作台 · 每日提醒", body, "/")
+    except Exception:
+        logger.debug("桌面通知跳过", exc_info=True)
 
 
 def _send_daily_single() -> dict[str, Any]:
