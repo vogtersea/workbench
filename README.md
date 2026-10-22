@@ -688,6 +688,18 @@ Windows 一般自带「仿宋」「黑体」「楷体」；名字带 _GB2312 的
 
 ---
 
+
+---
+
+## 界面预览
+
+Android 版（测试版）：
+
+| 开屏 | 仪表盘 | 周视图 |
+|---|---|---|
+| ![开屏](docs/screenshots/android-splash.png) | ![仪表盘](docs/screenshots/android-home.png) | ![周视图](docs/screenshots/android-week.png) |
+
+桌面版与 NAS 版共用同一套界面（浏览器渲染），布局在宽屏下会自动铺开。
 ## 16. 桌面版（Windows，不需要 Docker）
 
 **直接下载（推荐）**：<https://github.com/vogtersea/workbench/releases/latest>
