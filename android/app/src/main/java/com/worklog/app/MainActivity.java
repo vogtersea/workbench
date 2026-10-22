@@ -131,7 +131,7 @@ public class MainActivity extends Activity {
         splash.addView(name);
 
         TextView tagline = new TextView(this);
-        tagline.setText("个人工作流程跟踪 · 测试版");
+        tagline.setText("个人工作流程跟踪");
         tagline.setTextColor(0xCCFFFFFF);
         tagline.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tagline.setGravity(Gravity.CENTER);
