@@ -700,6 +700,17 @@ Android 版（测试版）：
 | ![开屏](docs/screenshots/android-splash.png) | ![仪表盘](docs/screenshots/android-home.png) | ![周视图](docs/screenshots/android-week.png) |
 
 桌面版与 NAS 版共用同一套界面（浏览器渲染），布局在宽屏下会自动铺开。
+
+桌面版 / NAS 版（浏览器打开，宽屏布局，支持深色模式）：
+
+| 浅色模式 | 深色模式 |
+|---|---|
+| ![浅色仪表盘](docs/screenshots/web-dashboard-light.png) | ![深色仪表盘](docs/screenshots/web-dashboard-dark.png) |
+
+| 浅色周视图 | 深色周视图 |
+|---|---|
+| ![浅色周视图](docs/screenshots/web-week-light.png) | ![深色周视图](docs/screenshots/web-week-dark.png) |
+
 ## 16. 桌面版（Windows，不需要 Docker）
 
 **直接下载（推荐）**：<https://github.com/vogtersea/workbench/releases/latest>
