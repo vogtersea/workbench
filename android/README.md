@@ -28,6 +28,19 @@ bash scripts/build_apk.sh
 脚本会先把仓库根的 `app/` 同步进 `android/app/src/main/python/app/` 再构建——
 **那份副本是构建产物、已被 gitignore**，因此不存在「两份代码不一致」的问题。
 
+## 正式签名构建
+
+密钥库与密码不入库，构建时用环境变量注入：
+
+```bash
+keytool -genkeypair -keystore release.keystore -alias worklog -keyalg RSA -validity 10950 -dname CN=Worklog
+
+export WB_KEYSTORE=/绝对路径/release.keystore
+export WB_STORE_PASS=... WB_KEY_ALIAS=worklog WB_KEY_PASS=...
+cd android && gradle assembleRelease
+```
+
+产物：android/app/build/outputs/apk/release/app-release.apk
 ## 设计要点（三个必须设置的项）
 
 1. `setWebViewClient`：不设置的话，WebView 会把每次导航交给系统浏览器，

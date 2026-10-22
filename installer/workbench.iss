@@ -4,7 +4,7 @@
 ;           不写系统目录、不需要管理员权限；数据目录由首次启动时用户自己选。
 
 #define MyAppName "工作志"
-#define MyAppVersion "1.1.1"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "vogtersea"
 #define MyAppExeName "Workbench.exe"
 

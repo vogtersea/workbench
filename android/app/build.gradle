@@ -11,17 +11,31 @@ android {
         applicationId "com.worklog.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "0.1.0"
+        versionCode 120
+        versionName "1.2.0"
         ndk {
             // 只打两种 ABI，先保证体积与构建时间可控
             abiFilters "arm64-v8a", "x86_64"
         }
     }
 
+    signingConfigs {
+        release {
+            // 密钥库与密码不入库：由环境变量注入（见 android/README.md）
+            storeFile file(System.getenv("WB_KEYSTORE") ?: "release.keystore")
+            storePassword System.getenv("WB_STORE_PASS") ?: ""
+            keyAlias System.getenv("WB_KEY_ALIAS") ?: "worklog"
+            keyPassword System.getenv("WB_KEY_PASS") ?: ""
+        }
+    }
+
     buildTypes {
         debug {
             minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
         }
     }
 

@@ -292,6 +292,28 @@ PyInstaller 会把模块常量压进 exe 内的 PYZ，解包可见。本次用�
 
 - 无需迁移。手机端数据独立存于 App 私有目录，与 NAS/桌面互不影响。
 
+## [v1.2.0] — 2026-10-22
+
+正式版：Windows / Android / NAS 统一到 v1.2.0。
+
+**改了什么**
+
+- 新 logo：圆角渐变底 + 白色文档卡 + 三条递减文字线 + 绿勾；24px 仍可辨认
+  托盘、安装包、favicon、Android 五个密度图标统一由 desktop/icon.py 渲染，网页为等价 SVG
+- Android 正式签名：新增 signingConfigs.release，密钥库与密码经环境变量注入，不入库
+- Android 开屏界面：品牌色 + 图标 + 版本标注；onPageFinished 后才切 WebView，消除白屏
+- 手机端排版：窄屏顶栏只留图标（修复品牌名竖排）、标题省略号截断、卡片说明独占一行、表单单列
+- 版本号与安装包脚本、Android versionCode/versionName 全部对齐 1.2.0
+
+**验证**
+
+- 单元测试 93 项通过；隐私扫描 0 命中
+- APK 签名校验通过（CN=Worklog）；Android 14 安装启动、页面渲染、导航留在应用内、数据落地均实测
+- Windows PyInstaller 打包版实际启动成功（托盘 + 窗口打开）
+
+**是否需要迁移**
+
+- 无需迁移。数据库结构未变。
 ## [未发布]
 
 （方案剩余项：W-11 报告页内二次编辑。W-10 / W-12 已随 v0.3.0 发布。）
