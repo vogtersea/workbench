@@ -99,6 +99,8 @@ public class MainActivity extends Activity {
             }
         });
 
+        requestNotificationPermission();
+        ReminderScheduler.schedule(this);
         setContentView(buildSplash(), new ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT));
         new Thread(this::startServerAndLoad).start();
     }
@@ -212,6 +214,15 @@ public class MainActivity extends Activity {
             return false;
         } finally {
             if (conn != null) conn.disconnect();
+        }
+    }
+
+    /** Android 13+ 需要运行时申请通知权限，否则提醒发不出来。 */
+    private void requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 100);
         }
     }
 }

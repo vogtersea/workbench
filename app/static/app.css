@@ -574,6 +574,8 @@ a.quiet { color: inherit; }
   .sidebar, .sidebar-scrim, .nav-toggle { display: none !important; }
   .has-sidebar .app-main { margin-left: 0; }
   .topbar-brand { display: none !important; }
+  /* 首次运行的「初始化管理员」入口（mode=open 分支）在窄屏让位，设置页仍可从抽屉进入 */
+  .topbar-right a.btn[href="/setup"] { display: none !important; }
 }
 /* ============================================================================
    品牌与主题（v1.0.2 视觉重做）—— 只追加，不改上面既有规则
@@ -771,16 +773,35 @@ a.quiet { color: inherit; }
    ========================================================================== */
 
 @media (max-width: 900px) {
-  /* 顶栏：窄屏下只留图标，避免品牌名被挤成两行；标题可省略号截断 */
-  .topbar-inner { padding: 0 12px; gap: 10px; flex-wrap: nowrap; }
+  /* 顶栏：窄屏下只留图标，避免品牌名被挤成两行；标题可省略号截断。
+     高度与内边距加大，两侧留出 16px 呼吸��间——之前 0 内边距太挤。 */
+  .topbar-inner {
+    min-height: 60px;
+    padding: 10px 16px;
+    gap: 14px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .nav-toggle {
+    width: 40px; height: 40px;
+    margin-right: 2px;
+  }
   .topbar-brand .brand-name { display: none; }  /* 顶栏品牌是 .brand-name（.brand-words 只在侧边栏）*/
   .topbar-brand .brand-mark { width: 24px; height: 24px; }
   .topbar-title {
     min-width: 0; flex: 1 1 auto;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    font-size: 15px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: .2px;
   }
-  .topbar-right { flex: 0 0 auto; gap: 6px; }
+  .topbar-right { flex: 0 0 auto; gap: 10px; }
+  .topbar-right .btn { padding: 8px 16px; }
+  .topbar-right .icon-btn { width: 38px; height: 38px; }
+  /* 窄屏：用户菜单收进抽屉、品牌图标让位给页面标题。
+     用 !important 是因为 .topbar-user 的基础规则在文件更后面（同优先级、后出现者胜）。 */
+  .topbar-user { display: none !important; }
+  .topbar-brand { display: none !important; }
   /* 卡片头：标题与说明允许换行，动作按钮独占一行，避免文字被压成竖排 */
   .card-head { flex-wrap: wrap; gap: 6px 10px; padding: 10px 14px; }
   .card-head .page-sub { flex: 1 1 100%; order: 2; }

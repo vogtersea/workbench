@@ -16,5 +16,5 @@
   <button type="submit" class="btn btn-ghost btn-sm">退出</button>
 </form>
 {% elif mode == 'open' %}
-<a class="btn btn-ghost btn-sm" href="/setup">初始化管理员</a>
+{# 初始化入口统一放在侧边栏（base.html 已有），顶栏不再重复，避免窄屏挤压标题 #}
 {% endif %}

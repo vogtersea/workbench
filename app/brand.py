@@ -10,7 +10,7 @@ NAME = "工作志"
 NAME_EN = "Worklog"
 TAGLINE = "个人工作流程跟踪"
 FULL_NAME = "%s · %s" % (NAME, TAGLINE)
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 EXE_NAME = "Workbench.exe"
 
 
