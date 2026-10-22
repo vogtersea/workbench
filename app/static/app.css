@@ -766,3 +766,39 @@ a.quiet { color: inherit; }
   .week-grid { gap: 12px; }
   .day-col { min-height: 190px; }
 }
+/* ============================================================================
+   手机端排版修正（v1.1.1）——顶栏拥挤、卡片头换行、表单单列
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  /* 顶栏：窄屏下只留图标，避免品牌名被挤成两行；标题可省略号截断 */
+  .topbar-inner { padding: 0 12px; gap: 10px; flex-wrap: nowrap; }
+  .topbar-brand .brand-name { display: none; }  /* 顶栏品牌是 .brand-name（.brand-words 只在侧边栏）*/
+  .topbar-brand .brand-mark { width: 24px; height: 24px; }
+  .topbar-title {
+    min-width: 0; flex: 1 1 auto;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 15px;
+  }
+  .topbar-right { flex: 0 0 auto; gap: 6px; }
+  /* 卡片头：标题与说明允许换行，动作按钮独占一行，避免文字被压成竖排 */
+  .card-head { flex-wrap: wrap; gap: 6px 10px; padding: 10px 14px; }
+  .card-head .page-sub { flex: 1 1 100%; order: 2; }
+  .card-actions { width: 100%; order: 3; }
+  /* 页头：标题与操作分两行，左对齐 */
+  .page-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .page-head .row { width: 100%; }
+  /* 表单：窄屏一律单列，避免两个控件挤在半屏 */
+  .form-row { grid-template-columns: 1fr; }
+  /* 内容区留白略收，让卡片更贴边、视觉更整 */
+  .container { padding: 14px 12px 32px; }
+  .card + .card { margin-top: 12px; }
+}
+
+@media (max-width: 640px) {
+  .page-title { font-size: 19px; }
+  .btn { padding: 6px 12px; }
+  .table th, .table td { padding: 8px 10px; }
+  /* 空状态文案居中且不溢出 */
+  .empty-hint { padding: 0 12px; }
+}

@@ -1,13 +1,17 @@
-"""品牌图标渲染（PIL）：圆角渐变底 + 三根上升柱 + 勾。
+"""品牌图标渲染（PIL）：圆角渐变底 + 白色文档卡 + 三条文字线 + 一个绿勾。
 
-托盘、安装包、favicon 都从这里取，避免出现两套图标设计。
-SVG 版本（网页用）由 scripts/make_logo.py 生成，图形比例与此保持一致。
+设计取舍：App 图标要在 24px 也认得出，所以用「文档 + 勾」而不是抽象柱状图——
+前者任何尺寸都读作「一份记录」，后者缩小后退化成几个色块。
+托盘、安装包、favicon、Android 图标都从这里渲染，避免多套设计。
+SVG 版本（网页用）由 scripts/make_logo.py 生成，比例与此一致。
 """
 
 from __future__ import annotations
 
-ACCENT_TOP = (92, 124, 255)      # #5C7CFF
-ACCENT_BOTTOM = (47, 73, 179)    # #2F49B3
+ACCENT_TOP = (92, 124, 255)
+ACCENT_BOTTOM = (47, 73, 179)
+ACCENT_MID = (58, 90, 220)
+CHECK_GREEN = (52, 199, 110)
 WHITE = (255, 255, 255, 255)
 
 
@@ -30,23 +34,23 @@ def render(size: int = 64):
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, size - 1, size - 1], radius=radius, fill=255)
     img.paste(grad, (0, 0), mask)
 
-    def bar(x, y, w, h, rx, alpha):
-        layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        ImageDraw.Draw(layer).rounded_rectangle(
-            [x * scale, y * scale, (x + w) * scale - 1, (y + h) * scale - 1],
-            radius=max(1, int(round(rx * scale))),
-            fill=WHITE[:3] + (int(255 * alpha),),
+    draw = ImageDraw.Draw(img)
+
+    def box(x0, y0, x1, y1, r, fill):
+        draw.rounded_rectangle(
+            [x0 * scale, y0 * scale, x1 * scale - 1, y1 * scale - 1],
+            radius=max(1, int(round(r * scale))), fill=fill,
         )
-        img.alpha_composite(layer)
 
-    bar(14, 38, 8, 12, 3, 0.82)
-    bar(27, 31, 8, 19, 3, 0.92)
-    bar(40, 24, 8, 26, 3, 1.0)
+    box(14, 9, 50, 55, 6, WHITE)
+    for index, width in enumerate((22, 18, 13)):
+        top = 18 + index * 9
+        box(21, top, 21 + width, top + 4, 2, ACCENT_MID + (255,))
 
-    ImageDraw.Draw(img).line(
-        [(34 * scale, 17.5 * scale), (38.5 * scale, 22 * scale), (46 * scale, 13.5 * scale)],
-        fill=WHITE,
-        width=max(1, int(round(4.6 * scale))),
+    draw.line(
+        [(33 * scale, 45 * scale), (38.5 * scale, 50.5 * scale), (47 * scale, 38 * scale)],
+        fill=CHECK_GREEN + (255,),
+        width=max(1, int(round(3.8 * scale))),
         joint="curve",
     )
     return img

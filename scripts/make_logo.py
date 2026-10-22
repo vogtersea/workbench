@@ -20,13 +20,14 @@ SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" 
       <stop offset="1" stop-color="#2F49B3"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#g)"/>
-  <g fill="#ffffff">
-    <rect x="14" y="38" width="8" height="12" rx="3" opacity=".82"/>
-    <rect x="27" y="31" width="8" height="19" rx="3" opacity=".92"/>
-    <rect x="40" y="24" width="8" height="26" rx="3"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="url(#g)"/>
+  <rect x="14" y="9" width="36" height="46" rx="6" fill="#ffffff"/>
+  <g fill="#3A5ADC">
+    <rect x="21" y="18" width="22" height="4" rx="2"/>
+    <rect x="21" y="27" width="18" height="4" rx="2"/>
+    <rect x="21" y="36" width="13" height="4" rx="2"/>
   </g>
-  <path d="M34 17.5 L38.5 22 L46 13.5" fill="none" stroke="#ffffff" stroke-width="4.6"
+  <path d="M33 45 L38.5 50.5 L47 38" fill="none" stroke="#34C76E" stroke-width="3.8"
         stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
 """
