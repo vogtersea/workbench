@@ -187,4 +187,10 @@ def render(request: Request, name: str, *, status_code: int = 200, **context: An
     )
     ctx.update(context)
     ctx["request"] = request
-    return templates.TemplateResponse(request, name, ctx, status_code=status_code)
+    # Starlette 的 TemplateResponse 签名变过：新版是 (request, name, ctx, ...)，
+    # Android 上的 fastapi 0.110 限定 starlette 0.36，那里第三个位置参数是 status_code。
+    # 两种都试，桌面版与手机版共用同一份代码。
+    try:
+        return templates.TemplateResponse(request, name, ctx, status_code=status_code)
+    except TypeError:
+        return templates.TemplateResponse(name, ctx, status_code=status_code)

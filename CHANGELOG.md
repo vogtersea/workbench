@@ -268,6 +268,30 @@ PyInstaller 会把模块常量压进 exe 内的 PYZ，解包可见。本次用�
 
 - 无需迁移；建议直接用 v1.0.7 的安装包替换旧版。
 
+## [v1.1.0] — 2026-10-22
+
+新增 Android 版（**测试版 beta**）：纯本地 APK（内嵌 CPython + FastAPI，WebView 显示，数据存手机本地）。
+
+**改了什么**
+
+- 新增 android/ 工程（Gradle + Chaquopy 16.1）：App 内启动本地 HTTP 服务，仅监听 127.0.0.1
+- 新增 scripts/build_apk.sh：把仓库 app/ 同步进 Android 工程后构建，产物 dist/worklog-<版本>-debug.apk
+- app/templating.py 增加 TemplateResponse 双签名兼容（桌面 starlette 1.9 与 Android starlette 0.36 共用一份代码）
+- 依赖约束：pydantic<2（v2 核心是 Rust 扩展，Android 无法编译）、fastapi==0.110.0、tzdata
+
+**实测**
+
+- Android 14 模拟器：能安装、能启动、页面正常渲染、点击导航留在应用内（未跳浏览器）
+- 数据落地：files/app.db + WAL 在 App 私有目录
+
+**影响哪些接口**
+
+- 后端接口与数据库结构零变化；Android 版复用同一套模板与路由
+
+**是否需要迁移**
+
+- 无需迁移。手机端数据独立存于 App 私有目录，与 NAS/桌面互不影响。
+
 ## [未发布]
 
 （方案剩余项：W-11 报告页内二次编辑。W-10 / W-12 已随 v0.3.0 发布。）

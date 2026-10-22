@@ -1,0 +1,61 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.worklog.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.worklog.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0"
+        ndk {
+            // 只打两种 ABI，先保证体积与构建时间可控
+            abiFilters "arm64-v8a", "x86_64"
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version "3.12"
+        pip {
+            // 只装跑通“能开能记录”所必需的纯 Python 包；
+            // python-docx 依赖 lxml（C 扩展），留到第二阶段验证
+            // pydantic v2 依赖 Rust 扩展（pydantic-core），Chaquopy 无法在 Android 上编译，
+            // 故钉在 v1（纯 Python）；FastAPI 0.100+ 同时兼容 v1/v2
+            install "pydantic<2"
+            // FastAPI 0.100+ 才开始兼容 pydantic v2 的类型；这里必须钉在 <0.100
+            // 0.100~0.115 是同时满足两件事的区间：
+            //   a) 兼容 pydantic v1（纯 Python，Android 可编译）
+            //   b) 依赖 starlette>=0.29，即 TemplateResponse(request, name, ...) 新签名
+            install "fastapi==0.110.0"
+            install "uvicorn"
+            install "jinja2"
+            install "httpx"
+            install "apscheduler"
+            install "python-multipart"
+            install "python-dotenv"
+            install "markdown"
+            // Android 没有系统 tzdata，zoneinfo("Asia/Shanghai") 会抛 ZoneInfoNotFoundError
+            install "tzdata"
+            // 试探：python-docx 依赖 lxml（C 扩展）。构建能过就说明 Chaquopy 有预编译包
+            install "python-docx"
+        }
+    }
+}
